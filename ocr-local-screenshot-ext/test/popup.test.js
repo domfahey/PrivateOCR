@@ -77,7 +77,10 @@ describe("Popup Logic Integration", () => {
       terminate: mockTerminate,
     };
     mockCreateWorker = vi.fn(() => Promise.resolve(mockWorkerInstance));
-    global.Tesseract = { createWorker: mockCreateWorker };
+    global.Tesseract = {
+      createWorker: mockCreateWorker,
+      OEM: { LSTM_ONLY: 1 }, // Mock OEM enum for tests
+    };
 
     init(elements);
     vi.runOnlyPendingTimers(); // Process initial timers set by init

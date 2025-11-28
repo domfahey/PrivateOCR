@@ -9,7 +9,7 @@ import { MAX_PIXELS, MAX_DIMENSION } from "../src/utils.js";
  * @param {Object} elements - References to DOM elements
  */
 export function init(elements) {
-  const { createWorker } = Tesseract;
+  const { createWorker, OEM } = Tesseract;
   const {
     statusEl,
     outputEl,
@@ -83,7 +83,7 @@ export function init(elements) {
     // It handles load, loadLanguage, and initialize internally
     workerPromise = (async () => {
       updateStatus("Loading OCR engine...");
-      const worker = await createWorker("eng", 1, {
+      const worker = await createWorker("eng", OEM.LSTM_ONLY, {
         workerPath: chrome.runtime.getURL("vendor/tesseract/worker.min.js"),
         corePath: chrome.runtime.getURL("vendor/tesseract/"),
         langPath: chrome.runtime.getURL("vendor/tessdata"),
