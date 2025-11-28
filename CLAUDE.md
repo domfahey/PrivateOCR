@@ -49,7 +49,7 @@ popup.js injects content.js → user draws rect → content.js → background.js
 
 **popup.js is a browser script** (not ES module), cannot be imported in tests. Testable logic goes in `src/utils.js`.
 
-**Duplicate constants**: `popup.js` uses 2MP/2000px limits, `utils.js` uses 5MP/3000px. Runtime uses popup.js values.
+**Shared utilities**: `popup-logic.js` imports utility functions (`dataUrlToBlob`, `scaleImageIfNeeded`, `copyToClipboard`) and constants (`MAX_PIXELS`, `MAX_DIMENSION`) from `utils.js`.
 
 **Privacy rules**:
 
