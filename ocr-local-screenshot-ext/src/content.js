@@ -12,6 +12,7 @@
   let isSelecting = false;
 
   function createOverlay() {
+    // Create overlay elements with high z-index to ensure they sit on top of all page content
     overlay = document.createElement("div");
     overlay.style.cssText = `
       position: fixed;
@@ -96,6 +97,7 @@
     const currentX = e.clientX;
     const currentY = e.clientY;
 
+    // Normalize coordinates (handle dragging backwards/upwards)
     const rect = {
       x: Math.min(startX, currentX),
       y: Math.min(startY, currentY),
@@ -109,7 +111,7 @@
       return;
     }
 
-    // Clamp to viewport bounds
+    // Clamp to viewport bounds to avoid negative values or overflow
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     rect.x = Math.max(0, rect.x);
@@ -117,7 +119,8 @@
     rect.width = Math.min(rect.width, viewportWidth - rect.x);
     rect.height = Math.min(rect.height, viewportHeight - rect.y);
 
-    // Account for device pixel ratio for high-DPI screens
+    // Account for device pixel ratio for high-DPI screens (Retina displays)
+    // Screenshots are captured at native resolution, so coordinates need to match
     const dpr = window.devicePixelRatio || 1;
     const scaledRect = {
       x: Math.round(rect.x * dpr),
@@ -128,7 +131,8 @@
 
     cleanup();
 
-    // Send selection to background script
+    // Send selection to background script to handle capture and popup opening
+    // Content scripts cannot use tabs.captureVisibleTab directly
     chrome.runtime
       .sendMessage({
         type: "regionSelected",

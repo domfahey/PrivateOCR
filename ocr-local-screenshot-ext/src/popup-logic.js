@@ -3,6 +3,11 @@
 
 import { MAX_PIXELS, MAX_DIMENSION } from "../src/utils.js";
 
+/**
+ * Initialize the popup logic.
+ * Decoupled from the DOM to allow unit testing.
+ * @param {Object} elements - References to DOM elements
+ */
 export function init(elements) {
   const { createWorker } = Tesseract;
   const {
@@ -22,23 +27,34 @@ export function init(elements) {
   let isProcessing = false;
   let isCancelled = false;
 
+  /**
+   * Update UI state based on processing status.
+   * @param {boolean} processing - Whether OCR is currently running
+   */
   function setProcessing(processing) {
     isProcessing = processing;
     if (screenshotBtn) screenshotBtn.disabled = processing;
     if (regionBtn) regionBtn.disabled = processing;
+    // Show cancel button only when processing
     if (cancelBtn) cancelBtn.style.display = processing ? "flex" : "none";
   }
 
+  /**
+   * Update the status text and progress bar.
+   * @param {string} msg - Status message to display
+   * @param {number|null} progress - Progress between 0 and 1, or null
+   */
   function updateStatus(msg, progress = null) {
     if (statusEl) statusEl.textContent = msg;
 
     if (progressTrack && progressIndicator) {
       if (progress !== null) {
+        // Determinate progress
         progressTrack.classList.add("active");
         progressIndicator.classList.remove("indeterminate");
         progressIndicator.style.width = `${progress * 100}%`;
       } else if (msg.startsWith("Done") || msg.includes("Error") || msg === "Cancelled") {
-        // Keep it visible for a moment then hide
+        // Finished state: Hide progress bar after a short delay
         setTimeout(() => {
           progressTrack.classList.remove("active");
           progressIndicator.style.width = "0%";
@@ -53,18 +69,27 @@ export function init(elements) {
     console.log(msg);
   }
 
+  /**
+   * Initialize or retrieve the Tesseract worker.
+   * Handles lazy loading and configuration.
+   * @returns {Promise<Tesseract.Worker>}
+   */
   function getWorker() {
     if (workerPromise) return workerPromise;
 
     isCancelled = false;
 
+    // Tesseract.js v5 API: createWorker returns a Promise<Worker>
+    // It handles load, loadLanguage, and initialize internally
     workerPromise = (async () => {
       updateStatus("Loading OCR engine...");
       const worker = await createWorker("eng", 1, {
         workerPath: chrome.runtime.getURL("vendor/tesseract/worker.min.js"),
         corePath: chrome.runtime.getURL("vendor/tesseract/tesseract-core-simd.wasm.js"),
         langPath: chrome.runtime.getURL("vendor/tessdata"),
-        workerBlobURL: false, // Disable Blob URL worker - required for Chrome extension MV3
+        // Disable Blob URL worker - required for Chrome extension Manifest V3 compliance
+        // MV3 does not allow arbitrary blob script execution
+        workerBlobURL: false,
         logger: (m) => {
           if (m.status) {
             if (typeof m.progress === "number") {
@@ -87,6 +112,10 @@ export function init(elements) {
     return workerPromise;
   }
 
+  /**
+   * Cancel the current OCR operation.
+   * Terminates the worker to stop processing immediately.
+   */
   async function cancelOcr() {
     isCancelled = true;
 
@@ -114,6 +143,10 @@ export function init(elements) {
     }
   }
 
+  /**
+   * Convert data URL to Blob.
+   * Manually decodes base64 to avoid using `fetch`, which clarifies that no network request is made.
+   */
   function dataUrlToBlob(dataUrl) {
     if (!dataUrl || typeof dataUrl !== "string") {
       throw new Error("Invalid data URL: must be a non-empty string");
@@ -137,6 +170,9 @@ export function init(elements) {
     }
   }
 
+  /**
+   * Scale down the image if it exceeds size limits to improve OCR performance and avoid crashes.
+   */
   function scaleImageIfNeeded(dataUrl) {
     return new Promise((resolve) => {
       const img = new Image();
@@ -144,11 +180,13 @@ export function init(elements) {
         const { width, height } = img;
         const pixels = width * height;
 
+        // Check if scaling is needed based on pixel count or dimensions
         if (pixels <= MAX_PIXELS && width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
           resolve({ dataUrl, scaled: false });
           return;
         }
 
+        // Calculate scale factor to fit within limits
         let scale = 1;
         if (pixels > MAX_PIXELS) {
           scale = Math.sqrt(MAX_PIXELS / pixels);
@@ -180,6 +218,10 @@ export function init(elements) {
     });
   }
 
+  /**
+   * Execute OCR on a file.
+   * Manages the UI state and worker lifecycle during recognition.
+   */
   async function runOcrOnFile(file) {
     try {
       setProcessing(true);
@@ -206,11 +248,15 @@ export function init(elements) {
     }
   }
 
+  /**
+   * Capture the visible area of the current active tab.
+   */
   async function captureCurrentTabAsFile() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) {
       throw new Error("No active tab found");
     }
+    // Chrome API to capture the visible tab as a PNG data URL
     const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
       format: "png",
     });
@@ -225,6 +271,9 @@ export function init(elements) {
     return { file, dataUrl: processedUrl };
   }
 
+  /**
+   * Crop a data URL to a specific region using a canvas.
+   */
   async function cropImageToRegion(dataUrl, rect) {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -237,7 +286,18 @@ export function init(elements) {
           reject(new Error("Failed to get canvas context"));
           return;
         }
-        ctx.drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+        // Draw only the selected region from the source image onto the canvas
+        ctx.drawImage(
+          img,
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height,
+          0,
+          0,
+          rect.width,
+          rect.height,
+        );
         canvas.toBlob((blob) => {
           if (blob) {
             const file = new File([blob], "region.png", { type: "image/png" });
@@ -270,6 +330,10 @@ export function init(elements) {
     }
   }
 
+  /**
+   * Initiate region selection mode.
+   * Injects the content script and closes the popup to allow user interaction.
+   */
   async function handleRegionClick() {
     if (isProcessing) return;
     try {
@@ -282,6 +346,7 @@ export function init(elements) {
         updateStatus("Error: Cannot access this tab");
         return;
       }
+      // Prevent injection on restricted pages where content scripts can't run
       if (
         tab.url.startsWith("chrome://") ||
         tab.url.startsWith("chrome-extension://") ||
@@ -293,11 +358,14 @@ export function init(elements) {
         return;
       }
 
+      // Inject the selection overlay script
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ["src/content.js"],
       });
 
+      // Close the popup so the user can interact with the page
+      // The background script will handle the 'regionSelected' message and re-open the popup
       window.close();
     } catch (err) {
       console.error(err);
@@ -352,14 +420,21 @@ export function init(elements) {
     cancelBtn.addEventListener("click", cancelOcr);
   }
 
+  /**
+   * Check if the popup was opened in "region mode".
+   * This happens when the background script re-opens the popup after a region is selected.
+   */
   async function checkRegionMode() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("regionMode") === "true") {
       try {
+        // Retrieve the captured data stored by the background script
         const result = await chrome.storage.local.get("pendingRegionOcr");
         if (result.pendingRegionOcr) {
           const { dataUrl, rect, timestamp } = result.pendingRegionOcr;
+          // Clean up storage immediately
           await chrome.storage.local.remove("pendingRegionOcr");
+          // Only process if data is fresh (< 1 minute) to avoid processing stale data
           if (Date.now() - timestamp < 60000) {
             await handleRegionCapture(dataUrl, rect);
           } else {
