@@ -1,4 +1,4 @@
-# Local OCR Screenshot Extension
+# PrivateOCR
 
 A privacy-focused Chrome extension that extracts text from screenshots using local OCR. All processing happens directly in your browser using [Tesseract.js](https://tesseract.projectnaptha.com/) ([GitHub](https://github.com/naptha/tesseract.js)) (WASM).
 

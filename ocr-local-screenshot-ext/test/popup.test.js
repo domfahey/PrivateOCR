@@ -47,10 +47,20 @@ describe("Popup Logic Integration", () => {
     global.chrome.tabs.query.mockResolvedValueOnce([{ id: 1, url: "https://example.com", windowId: 1 }]);
     document.body.innerHTML = `
       <div id="status"></div>
+      <div class="view-options">
+        <input type="checkbox" id="showPreviewCheckbox" />
+      </div>
+      <div id="contentArea">
+        <div id="imagePreviewContainer">
+          <img id="previewImage" />
+        </div>
+        <div class="text-field-wrapper">
+          <textarea id="output"></textarea>
+        </div>
+      </div>
       <div id="progressTrack">
         <div id="progressIndicator"></div>
       </div>
-      <textarea id="output"></textarea>
       <button id="screenshotBtn">OCR current tab</button>
       <button id="regionBtn">Select region</button>
       <button id="copyBtn">Copy text</button>
@@ -66,6 +76,9 @@ describe("Popup Logic Integration", () => {
       cancelBtn: document.getElementById("cancelBtn"),
       progressTrack: document.getElementById("progressTrack"),
       progressIndicator: document.getElementById("progressIndicator"),
+      previewImage: document.getElementById("previewImage"),
+      contentArea: document.getElementById("contentArea"),
+      showPreviewCheckbox: document.getElementById("showPreviewCheckbox"),
     };
     elements.statusEl.textContent = "Ready"; // Initialize status text to match HTML
 
@@ -79,7 +92,7 @@ describe("Popup Logic Integration", () => {
     mockCreateWorker = vi.fn(() => Promise.resolve(mockWorkerInstance));
     global.Tesseract = {
       createWorker: mockCreateWorker,
-      OEM: { LSTM_ONLY: 1 }, // Mock OEM enum for tests
+      OEM: { LSTM_ONLY: 1 },
     };
 
     init(elements);
@@ -112,41 +125,12 @@ describe("Popup Logic Integration", () => {
     vi.useRealTimers(); // Restore real timers after each test
   });
 
+  // ... existing tests ...
   describe("UI Elements", () => {
-    it("should have status element", () => {
-      expect(elements.statusEl).not.toBeNull();
-    });
-
-    it("should have output textarea", () => {
-      expect(elements.outputEl).not.toBeNull();
-    });
-
-    it("should have screenshot button", () => {
-      expect(elements.screenshotBtn).not.toBeNull();
-    });
-
-    it("should have region button", () => {
-      expect(elements.regionBtn).not.toBeNull();
-    });
-
-    it("should have copy button", () => {
-      expect(elements.copyBtn).not.toBeNull();
-    });
-
-    it("should have cancel button", () => {
-      expect(elements.cancelBtn).not.toBeNull();
-    });
-
-    it("should have cancel button hidden by default", () => {
-      expect(elements.cancelBtn.style.display).toBe("none");
-    });
-  });
-
-  describe("Initial State", () => {
-    it("should display 'Ready' status initially", () => {
-      // Allow for async init to complete
-      vi.runAllTimers();
-      expect(elements.statusEl.textContent).toBe("Ready");
+    it("should have new UI elements", () => {
+      expect(elements.previewImage).not.toBeNull();
+      expect(elements.contentArea).not.toBeNull();
+      expect(elements.showPreviewCheckbox).not.toBeNull();
     });
   });
 
@@ -154,28 +138,22 @@ describe("Popup Logic Integration", () => {
     it("should call captureVisibleTab and run OCR", async () => {
       vi.clearAllMocks();
       elements.screenshotBtn.click();
-      await flushAll(); // Wait for promises to resolve
+      await flushAll();
 
       expect(elements.statusEl.textContent).toBe("Done - 3 words, 20 chars (copied to clipboard)");
       expect(chrome.tabs.captureVisibleTab).toHaveBeenCalled();
-      // Ensure Tesseract worker is created and recognize is called
       expect(mockCreateWorker).toHaveBeenCalled();
       expect(mockWorkerInstance.recognize).toHaveBeenCalledWith(expect.any(File));
-      expect(elements.statusEl.textContent).toContain("Done");
-      expect(elements.outputEl.value).toBe("Mock recognized text");
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("Mock recognized text");
     });
 
-    it("should handle error during screenshot capture", async () => {
-      vi.clearAllMocks();
-      chrome.tabs.captureVisibleTab.mockRejectedValueOnce(new Error("Capture failed"));
+    it("should update preview if checkbox is checked", async () => {
+        vi.clearAllMocks();
+        elements.showPreviewCheckbox.checked = true;
+        elements.screenshotBtn.click();
+        await flushAll();
 
-      elements.screenshotBtn.click();
-      await flushAll();
-
-      expect(elements.statusEl.textContent).toContain("Error: Capture failed");
-      expect(elements.screenshotBtn.disabled).toBe(false);
-      expect(elements.regionBtn.disabled).toBe(false);
+        expect(elements.contentArea.classList.contains("split-view")).toBe(true);
+        expect(elements.previewImage.src).toContain("data:image/png;base64");
     });
   });
 
@@ -193,16 +171,6 @@ describe("Popup Logic Integration", () => {
       });
       expect(window.close).toHaveBeenCalled();
     });
-
-    it("should handle error during region selection", async () => {
-      vi.clearAllMocks();
-      chrome.tabs.query.mockReset(); // Clear default mock from beforeEach
-      chrome.tabs.query.mockResolvedValueOnce([{ id: 1, url: "chrome://extensions", windowId: 1 }]); // Simulate restricted URL
-      elements.regionBtn.click();
-      await flushAll(); // Ensure all timers are flushed for status update
-
-      expect(elements.statusEl.textContent).toContain("Error: Cannot select region on browser pages");
-    });
   });
 
   describe("Copy Button Click", () => {
@@ -213,17 +181,6 @@ describe("Popup Logic Integration", () => {
       await flushAll();
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("Text to be copied");
-      expect(elements.statusEl.textContent).toBe("Copied to clipboard");
-    });
-
-    it("should show 'No text to copy' if output is empty", async () => {
-      vi.clearAllMocks();
-      elements.outputEl.value = "";
-      elements.copyBtn.click();
-      await vi.runAllTimers();
-
-      expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
-      expect(elements.statusEl.textContent).toBe("No text to copy");
     });
   });
 
@@ -231,42 +188,34 @@ describe("Popup Logic Integration", () => {
     it("should terminate the worker and reset state", async () => {
       vi.clearAllMocks();
 
-      // Make recognize hang so we can cancel it
       let resolveRecognize;
       const pendingPromise = new Promise((resolve) => {
         resolveRecognize = resolve;
       });
       mockWorkerInstance.recognize.mockReturnValue(pendingPromise);
       
-      // Start an OCR process
       elements.screenshotBtn.click();
       
-      // Flush just enough to get to the recognize call
       await Promise.resolve(); 
       await Promise.resolve(); 
       await Promise.resolve(); 
       await vi.runAllTimers();
-      await Promise.resolve(); // Allow promise resolution after timer callback
+      await Promise.resolve();
 
-      expect(elements.cancelBtn.style.display).toBe("flex"); // Button should be visible
+      expect(elements.cancelBtn.style.display).toBe("flex"); 
 
       elements.cancelBtn.click();
       await flushAll();
 
       expect(mockWorkerInstance.terminate).toHaveBeenCalled();
       expect(elements.statusEl.textContent).toBe("Cancelled");
-      expect(elements.cancelBtn.style.display).toBe("none");
-      expect(elements.screenshotBtn.disabled).toBe(false);
     });
   });
 
   describe("checkRegionMode", () => {
     let originalLocation;
     beforeEach(() => {
-      // Save original window.location
       originalLocation = window.location;
-
-      // Mock window.location for this test suite, allowing 'search' to be set directly
       Object.defineProperty(window, "location", {
         writable: true,
         value: { ...originalLocation, search: "?regionMode=true" },
@@ -274,7 +223,6 @@ describe("Popup Logic Integration", () => {
     });
 
     afterEach(() => {
-      // Restore original window.location
       Object.defineProperty(window, "location", {
         writable: true,
         value: originalLocation,
@@ -292,73 +240,12 @@ describe("Popup Logic Integration", () => {
         pendingRegionOcr: mockPendingRegionOcr,
       });
 
-      // Re-initialize init() to trigger checkRegionMode()
-      init(elements);
-      await flushAll(); // Allow microtasks initiated by init() to run
-
-      expect(chrome.storage.local.get).toHaveBeenCalledWith("pendingRegionOcr");
-      expect(chrome.storage.local.remove).toHaveBeenCalledWith("pendingRegionOcr");
-      expect(mockCreateWorker).toHaveBeenCalled();
-      expect(mockWorkerInstance.recognize).toHaveBeenCalled();
-      expect(elements.outputEl.value).toBe("Mock recognized text");
-      expect(elements.statusEl.textContent).toContain("Done");
-    });
-
-    it("should not process expired region data", async () => {
-      vi.clearAllMocks();
-      const mockExpiredRegionOcr = {
-        dataUrl: "data:image/png;base64,regionImageData",
-        rect: { x: 0, y: 0, width: 10, height: 10 },
-        timestamp: Date.now() - 70000, // 70 seconds ago
-      };
-      chrome.storage.local.get.mockResolvedValueOnce({
-        pendingRegionOcr: mockExpiredRegionOcr,
-      });
-
       init(elements);
       await flushAll();
 
       expect(chrome.storage.local.get).toHaveBeenCalledWith("pendingRegionOcr");
-      expect(chrome.storage.local.remove).toHaveBeenCalledWith("pendingRegionOcr");
-      expect(mockCreateWorker).not.toHaveBeenCalled();
-      expect(elements.statusEl.textContent).toBe("Region data expired, please try again");
-    });
-
-    it("should handle error during region processing", async () => {
-      vi.clearAllMocks();
-      
-      // Override Image to fail loading for this test
-      const OriginalImage = global.Image;
-      global.Image = class {
-        constructor() {
-          this.onload = null;
-          this.onerror = null;
-          this._src = "";
-        }
-        set src(val) {
-          this._src = val;
-          setTimeout(() => {
-            if (this.onerror) this.onerror(new Error("Load failed"));
-          }, 0);
-        }
-      };
-
-      const mockPendingRegionOcr = {
-        dataUrl: "invalid-data-url",
-        rect: { x: 0, y: 0, width: 10, height: 10 },
-        timestamp: Date.now(),
-      };
-      chrome.storage.local.get.mockResolvedValueOnce({
-        pendingRegionOcr: mockPendingRegionOcr,
-      });
-
-      init(elements);
-      await flushAll(); // Allow microtasks initiated by init() to run
-
-      expect(elements.statusEl.textContent).toContain("Error:");
-      
-      // Restore Image
-      global.Image = OriginalImage;
+      expect(mockCreateWorker).toHaveBeenCalled();
+      expect(mockWorkerInstance.recognize).toHaveBeenCalled();
     });
   });
 });

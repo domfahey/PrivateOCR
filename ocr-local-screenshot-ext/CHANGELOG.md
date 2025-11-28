@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2025-11-28
+
+### Changed
+- **Renaming:** Project renamed to **PrivateOCR** to better reflect its core value proposition.
+- **UI:** Added a side-by-side view option to show the source image alongside the extracted text.
+- **Window Size:** Increased the popup window size to 780x580px to accommodate the new split view and improve usability.
 
 ### Changed
 - Switched to the "Best" English language model (`eng.traineddata` from `tessdata_best`) to optimize for OCR accuracy over speed. This increases the bundle size by ~10MB but significantly improves recognition quality.
@@ -42,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release of the Local OCR Screenshot Chrome extension.
+- Initial release of the PrivateOCR Chrome extension.
 - Privacy-focused local OCR capability using Tesseract.js (WASM), ensuring no data leaves the browser.
 - Full-page screenshot capture and OCR functionality.
 - Region selection tool allowing users to crop and OCR specific parts of the page.

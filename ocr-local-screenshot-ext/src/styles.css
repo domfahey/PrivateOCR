@@ -28,13 +28,17 @@
 body {
   margin: 0;
   padding: 0;
-  width: 400px; /* Increased width for better usability */
+  width: 780px; /* Maximized width */
+  height: 580px; /* Maximized height */
   font-family: var(--md-font-family);
   background-color: var(--md-sys-color-background);
   color: var(--md-sys-color-on-surface);
   display: flex;
   flex-direction: column;
 }
+
+/* body.wide is no longer needed if we are always wide, but keeping it won't hurt. 
+   Actually, let's remove the transition and specific width logic since we are fixed big now. */
 
 /* Top App Bar */
 .top-app-bar {
@@ -59,6 +63,46 @@ main {
   flex-direction: column;
   gap: 16px;
   flex-grow: 1; /* Allow main to grow and fill available space */
+}
+
+/* View Options */
+.view-options {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-grow: 1;
+  min-height: 0; /* Fix for flex child overflow */
+}
+
+.content-area.split-view {
+  flex-direction: row;
+}
+
+.preview-container {
+  display: none; /* Hidden by default */
+  flex: 1;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: 4px;
+  overflow: hidden;
+  justify-content: center;
+  align-items: center;
+  background-color: #f5f5f5;
+}
+
+.content-area.split-view .preview-container {
+  display: flex;
+}
+
+#preview-image {
+  max-width: 100%;
+  max-height: 350px; /* Match default text area height roughly */
+  object-fit: contain;
 }
 
 /* Buttons */
@@ -191,16 +235,16 @@ main {
   position: relative;
   border-radius: 4px;
   background-color: var(--md-sys-color-surface);
-  margin-top: 8px;
-  display: flex; /* Added */
-  flex-direction: column; /* Added */
-  flex-grow: 1; /* Added to make the wrapper grow */
+  /* margin-top: 8px;  Removed as gap handles spacing in flex container */
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }
 
 .md-text-field {
   width: 100%;
   /* height: 350px; Removed fixed height */
-  flex-grow: 1; /* Added */
+  flex-grow: 1;
   padding: 16px;
   border: 1px solid var(--md-sys-color-outline);
   border-radius: 4px;

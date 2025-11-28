@@ -10,6 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
     cancelBtn: document.getElementById("cancelBtn"),
     progressTrack: document.getElementById("progressTrack"),
     progressIndicator: document.getElementById("progressIndicator"),
+    // New elements for split view
+    previewImage: document.getElementById("previewImage"),
+    contentArea: document.getElementById("contentArea"),
+    showPreviewCheckbox: document.getElementById("showPreviewCheckbox"),
   };
 
   init(elements);

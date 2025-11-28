@@ -1,6 +1,6 @@
-# How to Install the Local OCR Screenshot Chrome Extension
+# How to Install the PrivateOCR Chrome Extension
 
-This document provides instructions on how to load and run the "Local OCR Screenshot" Chrome Extension in your browser. This is a developer installation method, as the extension is not published to the Chrome Web Store.
+This document provides instructions on how to load and run the "PrivateOCR" Chrome Extension in your browser. This is a developer installation method, as the extension is not published to the Chrome Web Store.
 
 ## Prerequisites
 -   Google Chrome browser installed on your system.
@@ -23,12 +23,12 @@ This document provides instructions on how to load and run the "Local OCR Screen
         *   So, select the `ocr-local-screenshot-ext` folder and click "Select".
 
 4.  **Verify Installation:**
-    *   Once loaded, the "Local OCR Screenshot" extension should appear in your list of installed extensions.
+    *   Once loaded, the "PrivateOCR" extension should appear in your list of installed extensions.
     *   You should see its name, version, and description.
 
 5.  **Pin the Extension (Optional but Recommended):**
     *   To easily access the extension, click the puzzle piece icon (Extensions icon) in your Chrome toolbar.
-    *   Find "Local OCR Screenshot" in the dropdown list and click the pushpin icon next to it to pin it to your toolbar.
+    *   Find "PrivateOCR" in the dropdown list and click the pushpin icon next to it to pin it to your toolbar.
 
 ## Usage
 -   Click the pinned extension icon in your Chrome toolbar to open the popup.
@@ -38,5 +38,5 @@ This document provides instructions on how to load and run the "Local OCR Screen
 
 ## Troubleshooting
 -   **Extension not appearing:** Ensure Developer mode is enabled and you selected the correct `ocr-local-screenshot-ext` folder.
--   **Errors in the extension:** If the extension shows an error or doesn't work as expected, go to `chrome://extensions/`, find the "Local OCR Screenshot" extension, and click the "Errors" button or view the console in the popup's developer tools (right-click the extension icon, then "Inspect popup").
+-   **Errors in the extension:** If the extension shows an error or doesn't work as expected, go to `chrome://extensions/`, find the "PrivateOCR" extension, and click the "Errors" button or view the console in the popup's developer tools (right-click the extension icon, then "Inspect popup").
 -   **Updates to code:** If you make changes to the extension's source code, you'll need to go to `chrome://extensions/`, find the extension, and click the refresh/reload icon (a circular arrow) to apply the changes.

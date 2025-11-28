@@ -19,6 +19,9 @@ export function init(elements) {
     cancelBtn,
     progressTrack,
     progressIndicator,
+    previewImage,
+    contentArea,
+    showPreviewCheckbox,
   } = elements;
 
   // State variables
@@ -26,6 +29,29 @@ export function init(elements) {
   let currentWorker = null;
   let isProcessing = false;
   let isCancelled = false;
+  let currentImageDataUrl = null;
+
+  function togglePreview() {
+    const show = showPreviewCheckbox.checked;
+    if (show && currentImageDataUrl) {
+      contentArea.classList.add("split-view");
+      previewImage.src = currentImageDataUrl;
+      // Parent container visibility is handled by CSS .split-view .preview-container
+    } else {
+      contentArea.classList.remove("split-view");
+    }
+  }
+
+  function updatePreview(dataUrl) {
+    currentImageDataUrl = dataUrl;
+    if (showPreviewCheckbox.checked) {
+      togglePreview();
+    }
+  }
+
+  if (showPreviewCheckbox) {
+    showPreviewCheckbox.addEventListener("change", togglePreview);
+  }
 
   /**
    * Update UI state based on processing status.
@@ -288,10 +314,11 @@ export function init(elements) {
         }
         // Draw only the selected region from the source image onto the canvas
         ctx.drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+        const croppedDataUrl = canvas.toDataURL("image/png");
         canvas.toBlob((blob) => {
           if (blob) {
             const file = new File([blob], "region.png", { type: "image/png" });
-            resolve(file);
+            resolve({ file, dataUrl: croppedDataUrl });
           } else {
             reject(new Error("Failed to create blob from canvas"));
           }
@@ -307,7 +334,8 @@ export function init(elements) {
     try {
       outputEl.value = "";
       updateStatus("Capturing screenshot...");
-      const { file } = await captureCurrentTabAsFile();
+      const { file, dataUrl } = await captureCurrentTabAsFile();
+      updatePreview(dataUrl);
       await runOcrOnFile(file);
     } catch (err) {
       if (isCancelled || (err && err.message === "Cancelled")) {
@@ -371,7 +399,8 @@ export function init(elements) {
   async function handleRegionCapture(dataUrl, rect) {
     try {
       updateStatus("Cropping region...");
-      const file = await cropImageToRegion(dataUrl, rect);
+      const { file, dataUrl: croppedDataUrl } = await cropImageToRegion(dataUrl, rect);
+      updatePreview(croppedDataUrl);
       await runOcrOnFile(file);
     } catch (err) {
       if (isCancelled || (err && err.message === "Cancelled")) {

@@ -2,12 +2,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Local OCR Screenshot</title>
+    <title>PrivateOCR</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header class="top-app-bar">
-      <h1 class="title">Local OCR</h1>
+      <h1 class="title">PrivateOCR</h1>
     </header>
 
     <main>
@@ -41,9 +41,21 @@
         <div id="status" class="status-text">Ready</div>
       </div>
 
-      <div class="text-field-wrapper">
-        <textarea id="output" class="md-text-field" placeholder=" "></textarea>
-        <label class="md-floating-label">Recognized Text</label>
+      <div class="view-options">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+          <input type="checkbox" id="showPreviewCheckbox" />
+          <span>Show Source Image</span>
+        </label>
+      </div>
+
+      <div id="contentArea" class="content-area">
+        <div id="imagePreviewContainer" class="preview-container">
+          <img id="previewImage" alt="Captured content" />
+        </div>
+        <div class="text-field-wrapper">
+          <textarea id="output" class="md-text-field" placeholder=" "></textarea>
+          <label class="md-floating-label">Recognized Text</label>
+        </div>
       </div>
 
       <div class="footer-actions">

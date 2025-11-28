@@ -1,6 +1,6 @@
-# Contributing to Local OCR Screenshot
+# Contributing to PrivateOCR
 
-Thank you for your interest in contributing to the Local OCR Screenshot extension! This document provides guidelines and information for developers.
+Thank you for your interest in contributing to the PrivateOCR extension! This document provides guidelines and information for developers.
 
 ## Development Setup
 

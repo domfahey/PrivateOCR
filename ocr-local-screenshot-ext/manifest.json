@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Local OCR Screenshot",
-  "version": "0.3.0",
+  "name": "PrivateOCR",
+  "version": "0.4.0",
   "description": "Capture the current tab and run OCR locally in your browser.",
   "author": {
     "name": "Dominic Fahey",
@@ -9,7 +9,7 @@
   },
   "action": {
     "default_popup": "src/popup.html",
-    "default_title": "Local OCR Screenshot"
+    "default_title": "PrivateOCR"
   },
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [],

@@ -1,6 +1,6 @@
-# Local OCR Screenshot Project
+# PrivateOCR
 
-This repository contains the source code for the **Local OCR Screenshot** Chrome extension.
+This repository contains the source code for the **PrivateOCR** Chrome extension.
 
 ## Directory Structure
 

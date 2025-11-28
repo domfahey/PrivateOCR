@@ -1,6 +1,6 @@
 # Publishing to the Chrome Web Store
 
-This guide outlines the steps to publish the **Local OCR Screenshot** extension to the Google Chrome Web Store.
+This guide outlines the steps to publish the **PrivateOCR** extension to the Google Chrome Web Store.
 
 ## 1. Prepare the Extension for Release
 
@@ -17,7 +17,7 @@ Before uploading, ensure your extension is production-ready.
         *   `vendor/` (Tesseract libraries and data)
     *   **Command Line Example (from inside `ocr-local-screenshot-ext`):**
         ```bash
-        zip -r local-ocr-extension.zip manifest.json src/ vendor/
+        zip -r private-ocr.zip manifest.json src/ vendor/
         ```
 
 ## 2. Create a Developer Account
@@ -29,7 +29,7 @@ Before uploading, ensure your extension is production-ready.
 ## 3. Upload the Extension
 
 1.  In the Developer Dashboard, click **+ New Item**.
-2.  Drag and drop the `local-ocr-extension.zip` file.
+2.  Drag and drop the `private-ocr.zip` file.
 
 ## 4. Store Listing
 
