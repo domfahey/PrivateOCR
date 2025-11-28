@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Local OCR Screenshot</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="top-app-bar">
+      <h1 class="title">Local OCR</h1>
+    </header>
+
+    <main>
+      <div class="action-row">
+        <button id="screenshotBtn" class="md-btn md-btn-filled">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path
+                d="M14.12 4l1.83 2H20v12H4V6h4.05l1.83-2h4.24M15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2zm-3 7c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3m0-2c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z"
+              />
+            </svg>
+          </span>
+          <span class="label">Capture Tab</span>
+        </button>
+        <button id="regionBtn" class="md-btn md-btn-tonal">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path
+                d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z"
+              />
+            </svg>
+          </span>
+          <span class="label">Select Region</span>
+        </button>
+      </div>
+
+      <div class="status-container">
+        <div class="progress-track" id="progressTrack">
+          <div class="progress-indicator" id="progressIndicator"></div>
+        </div>
+        <div id="status" class="status-text">Ready</div>
+      </div>
+
+      <div class="text-field-wrapper">
+        <textarea id="output" class="md-text-field" placeholder=" "></textarea>
+        <label class="md-floating-label">Recognized Text</label>
+      </div>
+
+      <div class="footer-actions">
+        <button id="copyBtn" class="md-btn md-btn-text">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path
+                d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+              />
+            </svg>
+          </span>
+          <span class="label">Copy Text</span>
+        </button>
+        <button id="cancelBtn" class="md-btn md-btn-text error" style="display: none">
+          Cancel
+        </button>
+      </div>
+    </main>
+
+    <script src="../vendor/tesseract/tesseract.min.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

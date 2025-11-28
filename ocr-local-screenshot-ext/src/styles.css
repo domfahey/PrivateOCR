@@ -1,0 +1,243 @@
+:root {
+  /* Material Design 3 (approximate) Color Tokens */
+  --md-sys-color-primary: #6750a4;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #eaddff;
+  --md-sys-color-on-primary-container: #21005d;
+
+  --md-sys-color-secondary-container: #e8def8;
+  --md-sys-color-on-secondary-container: #1d192b;
+
+  --md-sys-color-background: #fffbfe;
+  --md-sys-color-surface: #fffbfe;
+  --md-sys-color-on-surface: #1c1b1f;
+  --md-sys-color-on-surface-variant: #49454f;
+
+  --md-sys-color-outline: #79747e;
+  --md-sys-color-outline-focus: #6750a4;
+
+  --md-sys-color-error: #b3261e;
+  --md-sys-color-on-error: #ffffff;
+
+  --md-elevation-level-1: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+  --md-elevation-level-2: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+
+  --md-font-family: "Roboto", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 360px;
+  font-family: var(--md-font-family);
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top App Bar */
+.top-app-bar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 28px;
+}
+
+main {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Buttons */
+.action-row {
+  display: flex;
+  gap: 8px;
+}
+
+.md-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  border-radius: 20px;
+  padding: 0 24px;
+  font-family: var(--md-font-family);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  border: none;
+  cursor: pointer;
+  transition:
+    box-shadow 0.2s,
+    background-color 0.2s;
+  flex: 1;
+  overflow: hidden;
+}
+
+.md-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Filled Button (Primary) */
+.md-btn-filled {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+.md-btn-filled:hover:not(:disabled) {
+  box-shadow: var(--md-elevation-level-1);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08));
+}
+
+/* Tonal Button (Secondary) */
+.md-btn-tonal {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+.md-btn-tonal:hover:not(:disabled) {
+  box-shadow: var(--md-elevation-level-1);
+  background-image: linear-gradient(rgba(29, 25, 43, 0.08), rgba(29, 25, 43, 0.08));
+}
+
+/* Text Button (Ghost) */
+.md-btn-text {
+  background-color: transparent;
+  color: var(--md-sys-color-primary);
+  padding: 0 12px;
+  min-width: 64px;
+}
+.md-btn-text:hover:not(:disabled) {
+  background-color: rgba(103, 80, 164, 0.08);
+}
+.md-btn-text.error {
+  color: var(--md-sys-color-error);
+}
+.md-btn-text.error:hover:not(:disabled) {
+  background-color: rgba(179, 38, 30, 0.08);
+}
+
+/* Icons */
+.icon {
+  display: flex;
+  align-items: center;
+}
+
+/* Status & Progress */
+.status-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 24px;
+}
+
+.status-text {
+  font-size: 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-left: 4px;
+}
+
+.progress-track {
+  height: 4px;
+  background-color: var(--md-sys-color-secondary-container);
+  border-radius: 2px;
+  overflow: hidden;
+  width: 100%;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.progress-track.active {
+  opacity: 1;
+}
+
+.progress-indicator {
+  height: 100%;
+  background-color: var(--md-sys-color-primary);
+  width: 0%;
+  transition: width 0.2s linear;
+}
+
+.progress-indicator.indeterminate {
+  width: 50%;
+  animation: indeterminate 1.5s infinite linear;
+}
+
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-150%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+/* Text Field (Outlined variant) */
+.text-field-wrapper {
+  position: relative;
+  border-radius: 4px;
+  background-color: var(--md-sys-color-surface);
+  margin-top: 8px;
+}
+
+.md-text-field {
+  width: 100%;
+  height: 200px;
+  padding: 16px;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: 4px;
+  background-color: transparent;
+  font-family: var(--md-font-family);
+  font-size: 16px;
+  color: var(--md-sys-color-on-surface);
+  resize: none;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.md-text-field:focus {
+  border-color: var(--md-sys-color-primary);
+  border-width: 2px;
+  padding: 15px; /* adjust for border width increase */
+}
+
+/* Floating Label */
+.md-floating-label {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  padding: 0 4px;
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 16px;
+  pointer-events: none;
+  transition: 0.2s ease all;
+}
+
+.md-text-field:focus ~ .md-floating-label,
+.md-text-field:not(:placeholder-shown) ~ .md-floating-label {
+  top: -8px;
+  font-size: 12px;
+  color: var(--md-sys-color-primary);
+}
+
+/* Footer */
+.footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
