@@ -110,9 +110,7 @@ export async function copyToClipboard(text) {
  */
 export function countWords(text) {
   if (!text || !text.trim()) return 0;
-  // Use regex match instead of split to avoid creating intermediate array
-  const matches = text.trim().match(/\S+/g);
-  return matches ? matches.length : 0;
+  return text.trim().split(/\s+/).length;
 }
 
 /**
