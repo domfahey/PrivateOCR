@@ -28,7 +28,7 @@
 body {
   margin: 0;
   padding: 0;
-  width: 360px;
+  width: 400px; /* Increased width for better usability */
   font-family: var(--md-font-family);
   background-color: var(--md-sys-color-background);
   color: var(--md-sys-color-on-surface);
@@ -58,6 +58,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex-grow: 1; /* Allow main to grow and fill available space */
 }
 
 /* Buttons */
@@ -191,11 +192,15 @@ main {
   border-radius: 4px;
   background-color: var(--md-sys-color-surface);
   margin-top: 8px;
+  display: flex; /* Added */
+  flex-direction: column; /* Added */
+  flex-grow: 1; /* Added to make the wrapper grow */
 }
 
 .md-text-field {
   width: 100%;
-  height: 200px;
+  /* height: 350px; Removed fixed height */
+  flex-grow: 1; /* Added */
   padding: 16px;
   border: 1px solid var(--md-sys-color-outline);
   border-radius: 4px;
@@ -238,6 +243,6 @@ main {
 /* Footer */
 .footer-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start; /* Aligned to start */
   gap: 8px;
 }

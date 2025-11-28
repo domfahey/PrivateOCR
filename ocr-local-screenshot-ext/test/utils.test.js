@@ -188,15 +188,133 @@ describe("blobToFile", () => {
 });
 
 describe("scaleImageIfNeeded", () => {
-  it("should return a promise", () => {
-    const dataUrl = "data:image/png;base64,iVBORw0KGgo=";
-    const result = scaleImageIfNeeded(dataUrl);
+  let originalImage;
+  let originalCreateElement;
 
-    expect(result).toBeInstanceOf(Promise);
+  beforeEach(() => {
+    // Mock Image
+    originalImage = global.Image;
+    global.Image = class {
+      constructor() {
+        this.onload = null;
+        this.onerror = null;
+        this.src = "";
+        this.width = 0;
+        this.height = 0;
+        setTimeout(() => {
+           // parsing logic to simulate width/height from mock src if needed
+           // or just let test set dimensions
+           if (this.onload) this.onload();
+        }, 10);
+      }
+    };
+
+    // Mock Canvas
+    originalCreateElement = document.createElement;
+    document.createElement = vi.fn((tag) => {
+      if (tag === "canvas") {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => ({
+            drawImage: vi.fn(),
+          }),
+          toDataURL: () => "data:image/png;base64,mockScaled",
+        };
+      }
+      return originalCreateElement.call(document, tag);
+    });
   });
 
-  // Note: scaleImageIfNeeded relies on Image.onload which doesn't work well in jsdom
-  // Testing constants and return type instead
+  afterEach(() => {
+    global.Image = originalImage;
+    document.createElement = originalCreateElement;
+  });
+
+  it("should return original url if image is small enough", async () => {
+    const dataUrl = "data:image/png;base64,small";
+    
+    // Hook into Image constructor to set dimensions
+    const OriginalMock = global.Image;
+    global.Image = class extends OriginalMock {
+        constructor() {
+            super();
+            this.width = 100;
+            this.height = 100;
+        }
+    };
+
+    const result = await scaleImageIfNeeded(dataUrl);
+    expect(result.scaled).toBe(false);
+    expect(result.dataUrl).toBe(dataUrl);
+  });
+
+  it("should scale if pixels exceed limit", async () => {
+    const dataUrl = "data:image/png;base64,large";
+    
+    // Hook for large image
+    const OriginalMock = global.Image;
+    global.Image = class extends OriginalMock {
+        constructor() {
+            super();
+            // 3000x2000 = 6M pixels > 5M limit
+            this.width = 3000;
+            this.height = 2000;
+        }
+    };
+
+    const result = await scaleImageIfNeeded(dataUrl);
+    expect(result.scaled).toBe(true);
+    expect(result.dataUrl).toBe("data:image/png;base64,mockScaled");
+  });
+
+  it("should scale if width exceeds limit", async () => {
+      const dataUrl = "data:image/png;base64,wide";
+      
+      const OriginalMock = global.Image;
+      global.Image = class extends OriginalMock {
+          constructor() {
+              super();
+              this.width = 4000; // > 3000 limit
+              this.height = 100;
+          }
+      };
+  
+      const result = await scaleImageIfNeeded(dataUrl);
+      expect(result.scaled).toBe(true);
+  });
+
+  it("should scale if height exceeds limit", async () => {
+      const dataUrl = "data:image/png;base64,tall";
+      
+      const OriginalMock = global.Image;
+      global.Image = class extends OriginalMock {
+          constructor() {
+              super();
+              this.width = 100; 
+              this.height = 4000; // > 3000 limit
+          }
+      };
+  
+      const result = await scaleImageIfNeeded(dataUrl);
+      expect(result.scaled).toBe(true);
+  });
+
+  it("should handle image load error", async () => {
+    const dataUrl = "data:image/png;base64,bad";
+    
+    global.Image = class {
+        constructor() {
+            setTimeout(() => {
+                if (this.onerror) this.onerror();
+            }, 10);
+        }
+    };
+
+    const result = await scaleImageIfNeeded(dataUrl);
+    expect(result.scaled).toBe(false);
+    expect(result.dataUrl).toBe(dataUrl);
+  });
 
   it("should export MAX_PIXELS constant", () => {
     expect(MAX_PIXELS).toBe(5000000);

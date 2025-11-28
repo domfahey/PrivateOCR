@@ -12,16 +12,29 @@ export const MAX_DIMENSION = 3000; // Max width or height
  * This avoids any network semantics and makes it clear no network is involved
  * @param {string} dataUrl - The data URL to convert
  * @returns {Blob} The resulting Blob
+ * @throws {Error} If the data URL is malformed
  */
 export function dataUrlToBlob(dataUrl) {
-  const [header, base64] = dataUrl.split(",");
+  if (!dataUrl || typeof dataUrl !== "string") {
+    throw new Error("Invalid data URL: must be a non-empty string");
+  }
+  const commaIndex = dataUrl.indexOf(",");
+  if (commaIndex === -1) {
+    throw new Error("Invalid data URL: missing comma separator");
+  }
+  const header = dataUrl.slice(0, commaIndex);
+  const base64 = dataUrl.slice(commaIndex + 1);
   const mimeMatch = header.match(/data:(.*?);base64/);
   const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
-  const binary = atob(base64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type: mime });
+  try {
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  } catch (err) {
+    throw new Error("Invalid data URL: failed to decode base64 content");
+  }
 }
 
 /**
@@ -62,6 +75,10 @@ export function scaleImageIfNeeded(dataUrl) {
       canvas.width = newWidth;
       canvas.height = newHeight;
       const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve({ dataUrl, scaled: false });
+        return;
+      }
       ctx.drawImage(img, 0, 0, newWidth, newHeight);
 
       resolve({ dataUrl: canvas.toDataURL("image/png"), scaled: true });
@@ -104,7 +121,8 @@ export function countWords(text) {
  */
 export function isValidDataUrl(dataUrl) {
   if (!dataUrl || typeof dataUrl !== "string") return false;
-  return /^data:[^;]+;base64,/.test(dataUrl);
+  // Allow optional MIME type: data:;base64, or data:image/png;base64,
+  return /^data:[^;]*;base64,/.test(dataUrl);
 }
 
 /**

@@ -26,7 +26,7 @@ async function handleRegionSelection(tab, rect) {
     // Note: chrome.action.openPopup() is not available in all contexts
     // So we'll open the popup as a small window instead
     chrome.windows.create({
-      url: chrome.runtime.getURL("popup.html") + "?regionMode=true",
+      url: chrome.runtime.getURL("src/popup.html") + "?regionMode=true",
       type: "popup",
       width: 400,
       height: 400,

@@ -6,6 +6,7 @@
 
   let overlay = null;
   let selectionBox = null;
+  let instructions = null;
   let startX = 0;
   let startY = 0;
   let isSelecting = false;
@@ -32,7 +33,7 @@
       z-index: 2147483647;
     `;
 
-    const instructions = document.createElement("div");
+    instructions = document.createElement("div");
     instructions.style.cssText = `
       position: fixed;
       top: 10px;
@@ -108,6 +109,14 @@
       return;
     }
 
+    // Clamp to viewport bounds
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    rect.x = Math.max(0, rect.x);
+    rect.y = Math.max(0, rect.y);
+    rect.width = Math.min(rect.width, viewportWidth - rect.x);
+    rect.height = Math.min(rect.height, viewportHeight - rect.y);
+
     // Account for device pixel ratio for high-DPI screens
     const dpr = window.devicePixelRatio || 1;
     const scaledRect = {
@@ -120,10 +129,14 @@
     cleanup();
 
     // Send selection to background script
-    chrome.runtime.sendMessage({
-      type: "regionSelected",
-      rect: scaledRect,
-    });
+    chrome.runtime
+      .sendMessage({
+        type: "regionSelected",
+        rect: scaledRect,
+      })
+      .catch((err) => {
+        console.error("Failed to send region selection:", err);
+      });
   }
 
   function handleKeyDown(e) {
@@ -136,7 +149,6 @@
     window.__ocrRegionSelectorActive = false;
     if (overlay) overlay.remove();
     if (selectionBox) selectionBox.remove();
-    const instructions = document.querySelector("div[style*='transform: translateX(-50%)']");
     if (instructions) instructions.remove();
     document.removeEventListener("mousemove", handleMouseMove);
     document.removeEventListener("mouseup", handleMouseUp);

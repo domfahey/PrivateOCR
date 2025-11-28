@@ -8,7 +8,7 @@ import { vi } from "vitest";
 const createChromeMock = () => ({
   runtime: {
     getURL: vi.fn((path) => `chrome-extension://test-id/${path}`),
-    sendMessage: vi.fn(),
+    sendMessage: vi.fn().mockResolvedValue(undefined),
     onMessage: {
       addListener: vi.fn(),
       removeListener: vi.fn(),
@@ -33,13 +33,16 @@ const createChromeMock = () => ({
   },
 });
 
-// Mock Tesseract.js
+// Mock Tesseract.js (v5 API)
 const createTesseractMock = () => ({
   createWorker: vi.fn().mockResolvedValue({
     recognize: vi.fn().mockResolvedValue({
       data: { text: "Mock recognized text" },
     }),
     terminate: vi.fn().mockResolvedValue(undefined),
+    load: vi.fn().mockResolvedValue(undefined),
+    loadLanguage: vi.fn().mockResolvedValue(undefined),
+    initialize: vi.fn().mockResolvedValue(undefined),
   }),
 });
 
