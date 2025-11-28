@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2025-11-28
 
 ### Changed
+
 - Upgraded Tesseract.js to version 6.0.0 for improved performance and file size.
 - Updated bundled core files to Tesseract.js-core v5.1.0 (WASM and SIMD support).
 - Configured `createWorker` to use the new v6 API and correctly point to local worker/core resources.

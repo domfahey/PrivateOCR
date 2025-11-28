@@ -33,34 +33,34 @@ ocr-local-screenshot-ext/
 
 This is a Chrome Manifest V3 extension.
 
--   **Privacy-First**: No network requests are made. Tesseract.js is bundled locally.
--   **Full-page OCR**:
-    1.  `popup-logic.js` triggers `chrome.tabs.captureVisibleTab`.
-    2.  Image is scaled if necessary (`utils.js`).
-    3.  Tesseract worker processes the image blob.
--   **Region Selection**:
-    1.  `popup-logic.js` injects `content.js`.
-    2.  User selects a region; coordinates are sent to `background.js`.
-    3.  `background.js` captures the tab and stores the screenshot & coordinates in `chrome.storage.local`.
-    4.  `background.js` opens the popup again with `?regionMode=true`.
-    5.  `popup-logic.js` detects the mode, crops the image using the stored coordinates, and runs OCR.
+- **Privacy-First**: No network requests are made. Tesseract.js is bundled locally.
+- **Full-page OCR**:
+  1.  `popup-logic.js` triggers `chrome.tabs.captureVisibleTab`.
+  2.  Image is scaled if necessary (`utils.js`).
+  3.  Tesseract worker processes the image blob.
+- **Region Selection**:
+  1.  `popup-logic.js` injects `content.js`.
+  2.  User selects a region; coordinates are sent to `background.js`.
+  3.  `background.js` captures the tab and stores the screenshot & coordinates in `chrome.storage.local`.
+  4.  `background.js` opens the popup again with `?regionMode=true`.
+  5.  `popup-logic.js` detects the mode, crops the image using the stored coordinates, and runs OCR.
 
 ## Testing
 
 We use [Vitest](https://vitest.dev/) for unit testing.
 
--   **Run all tests**:
-    ```bash
-    npm test
-    ```
--   **Run with coverage**:
-    ```bash
-    npm run test:coverage
-    ```
--   **Watch mode**:
-    ```bash
-    npm run test:watch
-    ```
+- **Run all tests**:
+  ```bash
+  npm test
+  ```
+- **Run with coverage**:
+  ```bash
+  npm run test:coverage
+  ```
+- **Watch mode**:
+  ```bash
+  npm run test:watch
+  ```
 
 The tests heavily mock Chrome APIs (`chrome.tabs`, `chrome.storage`, etc.) and DOM APIs (`Image`, `Canvas`) to run in a Node.js/JSDOM environment.
 
@@ -68,17 +68,17 @@ The tests heavily mock Chrome APIs (`chrome.tabs`, `chrome.storage`, etc.) and D
 
 We use **ESLint** and **Prettier** to maintain code quality.
 
--   **Linting**:
-    ```bash
-    npm run lint
-    ```
--   **Fix Lint Errors**:
-    ```bash
-    npm run lint:fix
-    ```
--   **Format Code**:
-    ```bash
-    npm run format
-    ```
+- **Linting**:
+  ```bash
+  npm run lint
+  ```
+- **Fix Lint Errors**:
+  ```bash
+  npm run lint:fix
+  ```
+- **Format Code**:
+  ```bash
+  npm run format
+  ```
 
 Please ensure all tests pass and linting checks succeed before submitting a pull request.

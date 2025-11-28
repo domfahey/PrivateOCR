@@ -6,11 +6,11 @@ A privacy-focused Chrome extension that extracts text from screenshots using loc
 
 ## Features
 
--   **100% Offline & Private**: All OCR resources are bundled. No images or text are sent to external servers.
--   **Full-Page OCR**: Instantly capture and extract text from the visible tab area.
--   **Region Selection**: Draw a custom rectangle on any page to extract text from a specific area.
--   **Auto-Copy**: Recognized text is automatically copied to your clipboard.
--   **Modern UI**: Clean, responsive Material Design interface.
+- **100% Offline & Private**: All OCR resources are bundled. No images or text are sent to external servers.
+- **Full-Page OCR**: Instantly capture and extract text from the visible tab area.
+- **Region Selection**: Draw a custom rectangle on any page to extract text from a specific area.
+- **Auto-Copy**: Recognized text is automatically copied to your clipboard.
+- **Modern UI**: Clean, responsive Material Design interface.
 
 ## Installation (Developer Mode)
 

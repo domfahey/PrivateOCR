@@ -287,17 +287,7 @@ export function init(elements) {
           return;
         }
         // Draw only the selected region from the source image onto the canvas
-        ctx.drawImage(
-          img,
-          rect.x,
-          rect.y,
-          rect.width,
-          rect.height,
-          0,
-          0,
-          rect.width,
-          rect.height,
-        );
+        ctx.drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
         canvas.toBlob((blob) => {
           if (blob) {
             const file = new File([blob], "region.png", { type: "image/png" });
