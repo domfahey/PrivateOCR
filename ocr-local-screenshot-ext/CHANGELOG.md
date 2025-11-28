@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Switched to the "Best" English language model (`eng.traineddata` from `tessdata_best`) to optimize for OCR accuracy over speed. This increases the bundle size by ~10MB but significantly improves recognition quality.
+
 ### Fixed
 - Resolved `NetworkError` in Tesseract.js v6 by bundling the missing LSTM core files (`tesseract-core-lstm.wasm` and `tesseract-core-simd-lstm.wasm`), which are now required by default.
 
