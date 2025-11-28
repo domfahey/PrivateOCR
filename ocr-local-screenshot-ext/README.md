@@ -1,52 +1,51 @@
-# Local OCR Screenshot
+# Local OCR Screenshot Extension
 
-A privacy-focused Chrome extension that extracts text from screenshots using local OCR. All processing happens in your browser using [Tesseract.js](https://tesseract.projectnaptha.com/) - no data leaves your device.
+A privacy-focused Chrome extension that extracts text from screenshots using local OCR. All processing happens directly in your browser using [Tesseract.js](https://tesseract.projectnaptha.com/) (WASM).
+
+**No data leaves your device.**
 
 ## Features
 
-- **Full-page OCR**: Capture the visible tab and extract text
-- **Region selection**: Draw a rectangle to OCR a specific area
-- **Auto-copy**: Text is automatically copied to your clipboard
-- **100% offline**: All resources bundled, no network requests
+-   **100% Offline & Private**: All OCR resources are bundled. No images or text are sent to external servers.
+-   **Full-Page OCR**: Instantly capture and extract text from the visible tab area.
+-   **Region Selection**: Draw a custom rectangle on any page to extract text from a specific area.
+-   **Auto-Copy**: Recognized text is automatically copied to your clipboard.
+-   **Modern UI**: Clean, responsive Material Design interface.
 
-## Installation
+## Installation (Developer Mode)
 
-1. Clone this repository
-2. Run `npm install`
-3. Open `chrome://extensions/` and enable "Developer mode"
-4. Click "Load unpacked" and select the extension directory
+Since this extension is not yet in the Chrome Web Store, you must load it manually:
+
+1.  **Clone** or download this repository.
+2.  Navigate to the `ocr-local-screenshot-ext` directory and run:
+    ```bash
+    npm install
+    ```
+3.  Open Chrome and go to `chrome://extensions/`.
+4.  Toggle **"Developer mode"** in the top right corner.
+5.  Click **"Load unpacked"**.
+6.  Select the `ocr-local-screenshot-ext` folder.
+
+For more detailed instructions, see [INSTALL.md](../INSTALL.md).
 
 ## Usage
 
-**Full-page**: Click extension icon → "Capture Tab"
-
-**Region**: Click extension icon → "Select Region" → draw rectangle on page
-
-Press `Escape` to cancel region selection. Use the Cancel button to stop long-running OCR.
-
-## Project Structure
-
-```
-├── src/           # Extension source (popup, background, content scripts)
-├── vendor/        # Third-party libraries (Tesseract.js, language data)
-├── test/          # Test files
-└── manifest.json  # Chrome extension manifest
-```
+1.  **Pin the extension** to your toolbar for easy access.
+2.  **Full Page**: Click the extension icon -> **"Capture Tab"**.
+3.  **Specific Area**: Click **"Select Region"** -> Click and drag on the webpage to select text.
+4.  The text will be extracted and copied to your clipboard automatically.
 
 ## Development
 
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on setting up the environment, running tests, and understanding the architecture.
+
+### Quick Commands
+
 ```bash
-npm install          # Install dependencies
-npm test             # Run tests
-npm run lint         # ESLint
-npm run format       # Prettier
+npm test             # Run unit tests
+npm run lint:fix     # Fix linting issues
+npm run format       # Format code
 ```
-
-## Privacy
-
-- No network requests - Tesseract.js bundled in `vendor/`
-- Minimal permissions: `activeTab`, `scripting`, `storage`
-- OCR text never logged
 
 ## License
 
