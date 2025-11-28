@@ -28,9 +28,8 @@ export function dataUrlToBlob(dataUrl) {
   const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
   try {
     const binary = atob(base64);
-    const len = binary.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    // Use Uint8Array.from for more efficient byte conversion than a manual loop
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
     return new Blob([bytes], { type: mime });
   } catch (err) {
     throw new Error("Invalid data URL: failed to decode base64 content");
@@ -111,7 +110,9 @@ export async function copyToClipboard(text) {
  */
 export function countWords(text) {
   if (!text || !text.trim()) return 0;
-  return text.trim().split(/\s+/).length;
+  // Use regex match instead of split to avoid creating intermediate array
+  const matches = text.trim().match(/\S+/g);
+  return matches ? matches.length : 0;
 }
 
 /**

@@ -1,7 +1,7 @@
 // Privacy: Screenshots and OCR text exist in memory only, never persisted
 // Privacy: No logging of OCR text content or screenshot data
 
-import { MAX_PIXELS, MAX_DIMENSION } from "../src/utils.js";
+import { dataUrlToBlob, scaleImageIfNeeded, copyToClipboard, countWords } from "../src/utils.js";
 
 /**
  * Initialize the popup logic.
@@ -158,92 +158,6 @@ export function init(elements) {
     updateStatus("Cancelled");
   }
 
-  async function copyToClipboard(text) {
-    if (!text) return false;
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (err) {
-      console.error("Clipboard error:", err);
-      return false;
-    }
-  }
-
-  /**
-   * Convert data URL to Blob.
-   * Manually decodes base64 to avoid using `fetch`, which clarifies that no network request is made.
-   */
-  function dataUrlToBlob(dataUrl) {
-    if (!dataUrl || typeof dataUrl !== "string") {
-      throw new Error("Invalid data URL: must be a non-empty string");
-    }
-    const commaIndex = dataUrl.indexOf(",");
-    if (commaIndex === -1) {
-      throw new Error("Invalid data URL: missing comma separator");
-    }
-    const header = dataUrl.slice(0, commaIndex);
-    const base64 = dataUrl.slice(commaIndex + 1);
-    const mimeMatch = header.match(/data:(.*?);base64/);
-    const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
-    try {
-      const binary = atob(base64);
-      const len = binary.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-      return new Blob([bytes], { type: mime });
-    } catch (err) {
-      throw new Error("Invalid data URL: failed to decode base64 content");
-    }
-  }
-
-  /**
-   * Scale down the image if it exceeds size limits to improve OCR performance and avoid crashes.
-   */
-  function scaleImageIfNeeded(dataUrl) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const { width, height } = img;
-        const pixels = width * height;
-
-        // Check if scaling is needed based on pixel count or dimensions
-        if (pixels <= MAX_PIXELS && width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
-          resolve({ dataUrl, scaled: false });
-          return;
-        }
-
-        // Calculate scale factor to fit within limits
-        let scale = 1;
-        if (pixels > MAX_PIXELS) {
-          scale = Math.sqrt(MAX_PIXELS / pixels);
-        }
-        if (width * scale > MAX_DIMENSION) {
-          scale = MAX_DIMENSION / width;
-        }
-        if (height * scale > MAX_DIMENSION) {
-          scale = MAX_DIMENSION / height;
-        }
-
-        const newWidth = Math.floor(width * scale);
-        const newHeight = Math.floor(height * scale);
-
-        const canvas = document.createElement("canvas");
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          resolve({ dataUrl, scaled: false });
-          return;
-        }
-        ctx.drawImage(img, 0, 0, newWidth, newHeight);
-
-        resolve({ dataUrl: canvas.toDataURL("image/png"), scaled: true });
-      };
-      img.onerror = () => resolve({ dataUrl, scaled: false });
-      img.src = dataUrl;
-    });
-  }
-
   /**
    * Execute OCR on a file.
    * Manages the UI state and worker lifecycle during recognition.
@@ -260,7 +174,7 @@ export function init(elements) {
       if (text.trim()) {
         const copied = await copyToClipboard(text);
         const charCount = text.length;
-        const wordCount = text.trim().split(/\s+/).length;
+        const wordCount = countWords(text);
         if (copied) {
           updateStatus(`Done - ${wordCount} words, ${charCount} chars (copied to clipboard)`);
         } else {
