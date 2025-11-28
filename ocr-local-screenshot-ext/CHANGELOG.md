@@ -10,12 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2025-11-27
 
 ### Added
+
 - **UI Modernization:** Increased popup window width to 400px and made the recognized text area (`md-text-field`) flexible to fill available vertical space, improving usability.
 - **Popup Refactoring:** Extracted core popup logic from `src/popup.js` into a new, testable module `src/popup-logic.js`.
 - **Tests:** Added comprehensive unit tests for popup logic (`test/popup.test.js`), including robust mocking for global objects like `Image`, `Tesseract`, and Chrome APIs.
 - **Helpers:** Added `flushAll` helper in tests to reliably manage asynchronous promise and timer resolution.
 
 ### Changed
+
 - Refactored `src/popup.js` to act as a thin module entry point that initializes `popup-logic.js`.
 - Updated `manifest.json` to include a strict Content Security Policy (CSP) and define web accessible resources for Tesseract.js.
 - Updated `src/background.js` to reference the correct path for `src/popup.html`.
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-11-27
 
 ### Added
+
 - Initial release of the Local OCR Screenshot Chrome extension.
 - Privacy-focused local OCR capability using Tesseract.js (WASM), ensuring no data leaves the browser.
 - Full-page screenshot capture and OCR functionality.

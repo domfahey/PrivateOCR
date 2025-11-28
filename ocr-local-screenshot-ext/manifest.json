@@ -17,10 +17,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "vendor/tesseract/*",
-        "vendor/tessdata/*"
-      ],
+      "resources": ["vendor/tesseract/*", "vendor/tessdata/*"],
       "matches": ["<all_urls>"]
     }
   ]

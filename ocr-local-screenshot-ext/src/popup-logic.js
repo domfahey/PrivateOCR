@@ -237,17 +237,7 @@ export function init(elements) {
           reject(new Error("Failed to get canvas context"));
           return;
         }
-        ctx.drawImage(
-          img,
-          rect.x,
-          rect.y,
-          rect.width,
-          rect.height,
-          0,
-          0,
-          rect.width,
-          rect.height,
-        );
+        ctx.drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
         canvas.toBlob((blob) => {
           if (blob) {
             const file = new File([blob], "region.png", { type: "image/png" });
