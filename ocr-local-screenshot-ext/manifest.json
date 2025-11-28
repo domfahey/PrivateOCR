@@ -3,6 +3,10 @@
   "name": "Local OCR Screenshot",
   "version": "0.2.0",
   "description": "Capture the current tab and run OCR locally in your browser.",
+  "author": {
+    "name": "Dominic Fahey",
+    "email": "domfahey@gmail.com"
+  },
   "action": {
     "default_popup": "src/popup.html",
     "default_title": "Local OCR Screenshot"
