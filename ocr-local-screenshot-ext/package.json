@@ -1,6 +1,6 @@
 {
   "name": "ocr-local-screenshot-ext",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Chrome extension for local OCR of screenshots",
   "private": true,
   "type": "module",

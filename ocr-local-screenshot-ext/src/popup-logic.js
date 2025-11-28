@@ -85,7 +85,7 @@ export function init(elements) {
       updateStatus("Loading OCR engine...");
       const worker = await createWorker("eng", 1, {
         workerPath: chrome.runtime.getURL("vendor/tesseract/worker.min.js"),
-        corePath: chrome.runtime.getURL("vendor/tesseract/tesseract-core-simd.wasm.js"),
+        corePath: chrome.runtime.getURL("vendor/tesseract/"),
         langPath: chrome.runtime.getURL("vendor/tessdata"),
         // Disable Blob URL worker - required for Chrome extension Manifest V3 compliance
         // MV3 does not allow arbitrary blob script execution
