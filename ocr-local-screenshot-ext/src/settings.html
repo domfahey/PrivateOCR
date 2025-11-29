@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>PrivateOCR Settings</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <header class="settings-header">
+      <div class="header-content">
+        <div class="logo-area">
+          <span class="icon-large">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+              <path
+                d="M15 3V1.5c0-.83-.67-1.5-1.5-1.5h-3C9.67 0 9 .67 9 1.5V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-4zm0 0H9V1.5h6V3zM5 19V5h14v14H5zm2-4h10v2H7v-2zm0-4h10v2H7v-2zm0-4h7v2H7V7z"
+              />
+            </svg>
+          </span>
+          <h1>PrivateOCR</h1>
+        </div>
+      </div>
+    </header>
+
+    <main class="settings-container">
+      <section class="settings-card">
+        <h2 class="section-title">General</h2>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">OCR Language</div>
+            <div class="setting-description">
+              Currently utilizing the English (Best) model for maximum accuracy.
+            </div>
+          </div>
+          <div class="setting-control">
+            <select disabled class="md-select">
+              <option>English (Best)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">Privacy Mode</div>
+            <div class="setting-description">
+              All processing is performed locally. No data leaves your browser.
+            </div>
+          </div>
+          <div class="setting-control">
+            <span class="badge success">Active</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h2 class="section-title">About</h2>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">Version</div>
+            <div class="setting-description">v0.4.0</div>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">Open Source</div>
+            <div class="setting-description">
+              This project is open source and available on GitHub.
+            </div>
+          </div>
+          <div class="setting-control">
+            <a
+              href="https://github.com/domfahey/PrivateOCR"
+              target="_blank"
+              class="md-btn md-btn-tonal"
+            >
+              View on GitHub
+            </a>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">Developer</div>
+            <div class="setting-description">Dominic Fahey</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="settings.js" type="module"></script>
+  </body>
+</html>

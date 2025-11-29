@@ -17,6 +17,7 @@ const createChromeMock = () => ({
   tabs: {
     query: vi.fn().mockResolvedValue([{ id: 1, windowId: 1 }]),
     captureVisibleTab: vi.fn().mockResolvedValue("data:image/png;base64,iVBORw0KGgo="),
+    create: vi.fn().mockResolvedValue({ id: 1 }),
   },
   scripting: {
     executeScript: vi.fn().mockResolvedValue([]),

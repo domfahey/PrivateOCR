@@ -12,8 +12,16 @@ document.addEventListener("DOMContentLoaded", () => {
     progressIndicator: document.getElementById("progressIndicator"),
     // New elements for split view
     previewImage: document.getElementById("previewImage"),
+    emptyImageState: document.getElementById("emptyImageState"),
     contentArea: document.getElementById("contentArea"),
-    showPreviewCheckbox: document.getElementById("showPreviewCheckbox"),
+    settingsBtn: document.getElementById("settingsBtn"),
+    // Toolbar elements
+    toggleImageBtn: document.getElementById("toggleImageBtn"),
+    imgZoomInBtn: document.getElementById("imgZoomInBtn"),
+    imgZoomOutBtn: document.getElementById("imgZoomOutBtn"),
+    imgZoomFitBtn: document.getElementById("imgZoomFitBtn"),
+    textZoomInBtn: document.getElementById("textZoomInBtn"),
+    textZoomOutBtn: document.getElementById("textZoomOutBtn"),
   };
 
   init(elements);

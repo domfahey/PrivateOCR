@@ -25,20 +25,27 @@
   --md-font-family: "Roboto", system-ui, -apple-system, sans-serif;
 }
 
+html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   padding: 0;
-  width: 780px; /* Maximized width */
-  height: 580px; /* Maximized height */
+  width: 100vw;
+  height: 100vh;
+  min-width: 780px;
+  min-height: 580px;
   font-family: var(--md-font-family);
   background-color: var(--md-sys-color-background);
   color: var(--md-sys-color-on-surface);
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
 }
-
-/* body.wide is no longer needed if we are always wide, but keeping it won't hurt. 
-   Actually, let's remove the transition and specific width logic since we are fixed big now. */
 
 /* Top App Bar */
 .top-app-bar {
@@ -48,6 +55,13 @@ body {
   padding: 0 16px;
   background-color: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-surface);
+  flex-shrink: 0; /* Don't shrink header */
+}
+
+.app-bar-content {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
 }
 
 .title {
@@ -57,12 +71,33 @@ body {
   line-height: 28px;
 }
 
+/* Icon Button for App Bar */
+.md-btn-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: background-color 0.2s;
+}
+
+.md-btn-icon:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
 main {
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex-grow: 1; /* Allow main to grow and fill available space */
+  flex-grow: 1;
+  overflow: hidden; /* Allow content area to handle its own scrolling */
+  min-height: 0; /* Vital for nested flex scrolling */
 }
 
 /* View Options */
@@ -97,12 +132,87 @@ main {
 
 .content-area.split-view .preview-container {
   display: flex;
+  flex-direction: column;
+}
+
+.preview-toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 4px;
+  border-radius: 8px;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+.preview-toolbar .md-btn-icon {
+  color: #ffffff;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+}
+
+.preview-toolbar .md-btn-icon:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.image-scroll-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Custom scrollbar for dark theme */
+  scrollbar-width: thin;
+  scrollbar-color: #5f6368 #202124;
 }
 
 #preview-image {
+  /* Default state is "fit" handled by JS or CSS classes */
   max-width: 100%;
-  max-height: 350px; /* Match default text area height roughly */
+  max-height: 100%;
   object-fit: contain;
+  transform-origin: center center;
+  transition: width 0.2s ease, height 0.2s ease;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-sys-color-outline);
+  gap: 12px;
+  height: 100%;
+  width: 100%;
+  user-select: none;
+}
+
+.empty-state svg {
+  opacity: 0.5;
+}
+
+.empty-state span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Zoom Controls */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Icon Button Small */
+.md-btn-icon.small {
+  width: 28px;
+  height: 28px;
+  padding: 4px;
 }
 
 /* Buttons */

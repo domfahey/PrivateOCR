@@ -20,8 +20,15 @@ export function init(elements) {
     progressTrack,
     progressIndicator,
     previewImage,
+    emptyImageState,
     contentArea,
-    showPreviewCheckbox,
+    settingsBtn,
+    toggleImageBtn,
+    imgZoomInBtn,
+    imgZoomOutBtn,
+    imgZoomFitBtn,
+    textZoomInBtn,
+    textZoomOutBtn,
   } = elements;
 
   // State variables
@@ -30,27 +37,130 @@ export function init(elements) {
   let isProcessing = false;
   let isCancelled = false;
   let currentImageDataUrl = null;
+  
+  // UI State
+  let isPreviewVisible = true;
+  let imgScale = 1.0;
+  let isImgFit = true;
+  let textSize = 14;
 
-  function togglePreview() {
-    const show = showPreviewCheckbox.checked;
-    if (show && currentImageDataUrl) {
+  function updatePreviewVisibility() {
+    if (isPreviewVisible) { // Always allow toggle, even if empty (shows placeholder)
       contentArea.classList.add("split-view");
-      previewImage.src = currentImageDataUrl;
-      // Parent container visibility is handled by CSS .split-view .preview-container
+      if (toggleImageBtn) toggleImageBtn.classList.add("active");
     } else {
       contentArea.classList.remove("split-view");
+      if (toggleImageBtn) toggleImageBtn.classList.remove("active");
     }
   }
 
   function updatePreview(dataUrl) {
     currentImageDataUrl = dataUrl;
-    if (showPreviewCheckbox.checked) {
-      togglePreview();
+    
+    if (dataUrl) {
+      previewImage.src = dataUrl;
+      previewImage.style.display = "block";
+      if (emptyImageState) emptyImageState.style.display = "none";
+      
+      // Reset zoom on new image
+      isImgFit = true;
+      imgScale = 1.0;
+      applyImageZoom();
+    } else {
+      previewImage.style.display = "none";
+      previewImage.src = "";
+      if (emptyImageState) emptyImageState.style.display = "flex";
+    }
+    
+    // Force visibility update to show split view if active
+    updatePreviewVisibility();
+  }
+
+  function applyImageZoom() {
+    if (!currentImageDataUrl) return;
+    
+    if (isImgFit) {
+      previewImage.style.maxWidth = "100%";
+      previewImage.style.width = "auto";
+      previewImage.style.height = "auto";
+    } else {
+      previewImage.style.maxWidth = "none";
+      previewImage.style.height = "auto";
+      const baseWidth = previewImage.naturalWidth || previewImage.width || 800;
+      previewImage.style.width = `${baseWidth * imgScale}px`;
     }
   }
 
-  if (showPreviewCheckbox) {
-    showPreviewCheckbox.addEventListener("change", togglePreview);
+  function applyTextZoom() {
+    outputEl.style.fontSize = `${textSize}px`;
+  }
+
+  // Event Listeners
+  if (toggleImageBtn) {
+    toggleImageBtn.addEventListener("click", () => {
+      isPreviewVisible = !isPreviewVisible;
+      updatePreviewVisibility();
+    });
+  }
+
+  if (imgZoomInBtn) {
+    imgZoomInBtn.addEventListener("click", () => {
+      if (!currentImageDataUrl) return;
+      if (isImgFit) {
+        isImgFit = false;
+        imgScale = 1.0;
+      }
+      imgScale *= 1.2;
+      applyImageZoom();
+    });
+  }
+
+  if (imgZoomOutBtn) {
+    imgZoomOutBtn.addEventListener("click", () => {
+      if (!currentImageDataUrl) return;
+      if (isImgFit) {
+        isImgFit = false;
+        imgScale = 1.0;
+      }
+      imgScale /= 1.2;
+      applyImageZoom();
+    });
+  }
+
+  if (imgZoomFitBtn) {
+    imgZoomFitBtn.addEventListener("click", () => {
+      if (!currentImageDataUrl) return;
+      isImgFit = true;
+      imgScale = 1.0;
+      applyImageZoom();
+    });
+  }
+
+  if (textZoomInBtn) {
+    textZoomInBtn.addEventListener("click", () => {
+      textSize = Math.min(textSize + 2, 32); // Max 32px
+      applyTextZoom();
+    });
+  }
+
+  if (textZoomOutBtn) {
+    textZoomOutBtn.addEventListener("click", () => {
+      textSize = Math.max(textSize - 2, 10); // Min 10px
+      applyTextZoom();
+    });
+  }
+
+  if (settingsBtn) {
+    settingsBtn.addEventListener("click", () => {
+      chrome.tabs.create({ url: chrome.runtime.getURL("src/settings.html") });
+    });
+  }
+
+  // Handle image load to ensure dimensions are correct for zoom
+  if (previewImage) {
+    previewImage.addEventListener("load", () => {
+      if (!isImgFit) applyImageZoom();
+    });
   }
 
   /**
@@ -430,6 +540,21 @@ export function init(elements) {
     const copied = await copyToClipboard(text);
     if (copied) {
       updateStatus("Copied to clipboard");
+      
+      // Visual feedback
+      const originalHtml = copyBtn.innerHTML;
+      copyBtn.innerHTML = `
+        <span class="icon">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          </svg>
+        </span>
+        <span>Copied!</span>
+      `;
+      
+      setTimeout(() => {
+        copyBtn.innerHTML = originalHtml;
+      }, 2000);
     } else {
       updateStatus("Could not copy to clipboard");
     }

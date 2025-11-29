@@ -6,6 +6,7 @@ global.chrome = {
   tabs: {
     query: vi.fn(), // Will be mocked per test in beforeEach for specific scenarios
     captureVisibleTab: vi.fn(() => Promise.resolve("data:image/png;base64,mockedImageData")),
+    create: vi.fn(),
   },
   scripting: {
     executeScript: vi.fn(() => Promise.resolve()),
@@ -47,14 +48,13 @@ describe("Popup Logic Integration", () => {
     global.chrome.tabs.query.mockResolvedValueOnce([{ id: 1, url: "https://example.com", windowId: 1 }]);
     document.body.innerHTML = `
       <div id="status"></div>
-      <div class="view-options">
-        <input type="checkbox" id="showPreviewCheckbox" />
-      </div>
       <div id="contentArea">
         <div id="imagePreviewContainer">
-          <img id="previewImage" />
+          <div id="emptyImageState" style="display:flex"></div>
+          <img id="previewImage" style="display:none" />
         </div>
         <div class="text-field-wrapper">
+          <button id="toggleImageBtn"></button>
           <textarea id="output"></textarea>
         </div>
       </div>
@@ -65,6 +65,12 @@ describe("Popup Logic Integration", () => {
       <button id="regionBtn">Select region</button>
       <button id="copyBtn">Copy text</button>
       <button id="cancelBtn" style="display:none">Cancel</button>
+      <button id="settingsBtn">Settings</button>
+      <button id="imgZoomInBtn">Img+</button>
+      <button id="imgZoomOutBtn">Img-</button>
+      <button id="imgZoomFitBtn">ImgFit</button>
+      <button id="textZoomInBtn">Txt+</button>
+      <button id="textZoomOutBtn">Txt-</button>
     `;
 
     elements = {
@@ -77,8 +83,15 @@ describe("Popup Logic Integration", () => {
       progressTrack: document.getElementById("progressTrack"),
       progressIndicator: document.getElementById("progressIndicator"),
       previewImage: document.getElementById("previewImage"),
+      emptyImageState: document.getElementById("emptyImageState"),
       contentArea: document.getElementById("contentArea"),
-      showPreviewCheckbox: document.getElementById("showPreviewCheckbox"),
+      toggleImageBtn: document.getElementById("toggleImageBtn"),
+      settingsBtn: document.getElementById("settingsBtn"),
+      imgZoomInBtn: document.getElementById("imgZoomInBtn"),
+      imgZoomOutBtn: document.getElementById("imgZoomOutBtn"),
+      imgZoomFitBtn: document.getElementById("imgZoomFitBtn"),
+      textZoomInBtn: document.getElementById("textZoomInBtn"),
+      textZoomOutBtn: document.getElementById("textZoomOutBtn"),
     };
     elements.statusEl.textContent = "Ready"; // Initialize status text to match HTML
 
@@ -125,12 +138,23 @@ describe("Popup Logic Integration", () => {
     vi.useRealTimers(); // Restore real timers after each test
   });
 
-  // ... existing tests ...
   describe("UI Elements", () => {
     it("should have new UI elements", () => {
       expect(elements.previewImage).not.toBeNull();
+      expect(elements.emptyImageState).not.toBeNull();
       expect(elements.contentArea).not.toBeNull();
-      expect(elements.showPreviewCheckbox).not.toBeNull();
+      expect(elements.toggleImageBtn).not.toBeNull();
+      expect(elements.settingsBtn).not.toBeNull();
+      expect(elements.imgZoomInBtn).not.toBeNull();
+    });
+  });
+
+  describe("Settings Button Click", () => {
+    it("should open the settings page", () => {
+      elements.settingsBtn.click();
+      expect(chrome.tabs.create).toHaveBeenCalledWith({
+        url: "chrome-extension://test-id/src/settings.html",
+      });
     });
   });
 
@@ -146,17 +170,50 @@ describe("Popup Logic Integration", () => {
       expect(mockWorkerInstance.recognize).toHaveBeenCalledWith(expect.any(File));
     });
 
-    it("should update preview if checkbox is checked", async () => {
+    it("should update preview", async () => {
         vi.clearAllMocks();
-        elements.showPreviewCheckbox.checked = true;
         elements.screenshotBtn.click();
         await flushAll();
 
+        // Should be visible by default
         expect(elements.contentArea.classList.contains("split-view")).toBe(true);
         expect(elements.previewImage.src).toContain("data:image/png;base64");
+        expect(elements.previewImage.style.display).toBe("block");
+        expect(elements.emptyImageState.style.display).toBe("none");
     });
   });
 
+  describe("Zoom Controls", () => {
+    it("should increase text size", () => {
+      const initialSize = elements.outputEl.style.fontSize;
+      elements.textZoomInBtn.click();
+      expect(elements.outputEl.style.fontSize).toBe("16px"); // Default 14 + 2
+    });
+
+    it("should decrease text size", () => {
+        // Increase first so we can decrease
+        elements.textZoomInBtn.click(); // 16px
+        elements.textZoomOutBtn.click(); // 14px
+        expect(elements.outputEl.style.fontSize).toBe("14px");
+    });
+  });
+
+  describe("Image Toggle", () => {
+      it("should toggle split-view class", async () => {
+          // Simulate having an image first
+          elements.screenshotBtn.click();
+          await flushAll();
+          
+          // Initially active
+          expect(elements.contentArea.classList.contains("split-view")).toBe(true);
+          
+          // Click to toggle off
+          elements.toggleImageBtn.click();
+          expect(elements.contentArea.classList.contains("split-view")).toBe(false);
+      });
+  });
+
+  // ... existing tests ...
   describe("Region Button Click", () => {
     it("should call executeScript and close window", async () => {
       vi.clearAllMocks();
@@ -170,6 +227,16 @@ describe("Popup Logic Integration", () => {
         files: ["src/content.js"],
       });
       expect(window.close).toHaveBeenCalled();
+    });
+
+    it("should handle error during region selection", async () => {
+      vi.clearAllMocks();
+      chrome.tabs.query.mockReset(); // Clear default mock from beforeEach
+      chrome.tabs.query.mockResolvedValueOnce([{ id: 1, url: "chrome://extensions", windowId: 1 }]); // Simulate restricted URL
+      elements.regionBtn.click();
+      await flushAll(); // Ensure all timers are flushed for status update
+
+      expect(elements.statusEl.textContent).toContain("Error: Cannot select region on browser pages");
     });
   });
 
