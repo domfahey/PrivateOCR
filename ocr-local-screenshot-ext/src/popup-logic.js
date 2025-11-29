@@ -5,7 +5,7 @@ import {
   dataUrlToBlob,
   scaleImageIfNeeded,
   copyToClipboard,
-} from "../src/utils.js";
+} from "./utils.js";
 
 /**
  * Initialize the popup logic.
