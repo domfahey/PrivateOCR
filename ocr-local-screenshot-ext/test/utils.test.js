@@ -10,6 +10,7 @@ import {
   countWords,
   isValidDataUrl,
   blobToFile,
+  getErrorMessage,
   MAX_PIXELS,
   MAX_DIMENSION,
 } from "../src/utils.js";
@@ -332,5 +333,38 @@ describe("constants", () => {
 
   it("MAX_DIMENSION should be 3000", () => {
     expect(MAX_DIMENSION).toBe(3000);
+  });
+});
+
+describe("getErrorMessage", () => {
+  it("should extract message from Error object", () => {
+    const error = new Error("Something went wrong");
+    expect(getErrorMessage(error)).toBe("Something went wrong");
+  });
+
+  it("should extract message from object with message property", () => {
+    const error = { message: "Custom error" };
+    expect(getErrorMessage(error)).toBe("Custom error");
+  });
+
+  it("should convert string to string", () => {
+    expect(getErrorMessage("Error string")).toBe("Error string");
+  });
+
+  it("should convert number to string", () => {
+    expect(getErrorMessage(404)).toBe("404");
+  });
+
+  it("should convert null to string", () => {
+    expect(getErrorMessage(null)).toBe("null");
+  });
+
+  it("should convert undefined to string", () => {
+    expect(getErrorMessage(undefined)).toBe("undefined");
+  });
+
+  it("should handle object without message property", () => {
+    const error = { code: 500 };
+    expect(getErrorMessage(error)).toBe("[object Object]");
   });
 });
