@@ -1,7 +1,7 @@
 // Privacy: Screenshots and OCR text exist in memory only, never persisted
 // Privacy: No logging of OCR text content or screenshot data
 
-import { dataUrlToBlob, scaleImageIfNeeded, copyToClipboard, countWords } from "../src/utils.js";
+import { dataUrlToBlob, scaleImageIfNeeded, copyToClipboard, countWords, getErrorMessage } from "../src/utils.js";
 
 /**
  * Initialize the popup logic.
@@ -159,6 +159,21 @@ export function init(elements) {
   }
 
   /**
+   * Handle OCR-related errors consistently.
+   * Checks for cancellation and updates the UI status.
+   * @param {Error|unknown} error - The error to handle
+   */
+  function handleOcrError(error) {
+    if (isCancelled || (error && error.message === "Cancelled")) {
+      updateStatus("Cancelled");
+    } else {
+      console.error(error);
+      updateStatus("Error: " + getErrorMessage(error));
+    }
+    setProcessing(false);
+  }
+
+  /**
    * Execute OCR on a file.
    * Manages the UI state and worker lifecycle during recognition.
    */
@@ -167,7 +182,7 @@ export function init(elements) {
       setProcessing(true);
       const worker = await getWorker();
       updateStatus("Recognizing...");
-      const { data } = await worker.recognize(file);
+      const { data } = await worker.recognize(screenshotFile);
       const text = data.text || "";
       outputEl.value = text;
 
@@ -178,7 +193,7 @@ export function init(elements) {
         if (copied) {
           updateStatus(`Done - ${wordCount} words, ${charCount} chars (copied to clipboard)`);
         } else {
-          updateStatus(`Done - ${wordCount} words, ${characterCount} chars`);
+          updateStatus(`Done - ${wordCount} words, ${charCount} chars`);
         }
       } else {
         updateStatus("Done - no text found");
@@ -252,13 +267,7 @@ export function init(elements) {
       updatePreview(dataUrl);
       await runOcrOnFile(screenshotFile);
     } catch (error) {
-      if (isCancelled || (error && error.message === "Cancelled")) {
-        updateStatus("Cancelled");
-      } else {
-        console.error(error);
-        updateStatus("Error: " + (error && error.message ? error.message : String(error)));
-      }
-      setProcessing(false);
+      handleOcrError(error);
     }
   }
 
@@ -301,7 +310,7 @@ export function init(elements) {
       window.close();
     } catch (error) {
       console.error(error);
-      const errorMessage = error && error.message ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       if (errorMessage.includes("Cannot access") || errorMessage.includes("chrome://")) {
         updateStatus("Error: Cannot select region on this page");
       } else {
@@ -317,13 +326,7 @@ export function init(elements) {
       updatePreview(croppedDataUrl);
       await runOcrOnFile(croppedFile);
     } catch (error) {
-      if (isCancelled || (error && error.message === "Cancelled")) {
-        updateStatus("Cancelled");
-      } else {
-        console.error(error);
-        updateStatus("Error: " + (error && error.message ? error.message : String(error)));
-      }
-      setProcessing(false);
+      handleOcrError(error);
     }
   }
 
@@ -376,7 +379,7 @@ export function init(elements) {
         }
       } catch (error) {
         console.error("Error loading region data:", error);
-        updateStatus("Error: " + (error.message || String(error)));
+        updateStatus("Error: " + getErrorMessage(error));
       }
     }
   }

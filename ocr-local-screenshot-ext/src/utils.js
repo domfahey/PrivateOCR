@@ -27,10 +27,10 @@ export function dataUrlToBlob(dataUrl) {
   const mimeMatch = dataUrlHeader.match(/data:(.*?);base64/);
   const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
   try {
-    const binary = atob(base64);
+    const binary = atob(base64Content);
     // Use Uint8Array.from for more efficient byte conversion than a manual loop
     const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    return new Blob([bytes], { type: mime });
+    return new Blob([bytes], { type: mimeType });
   } catch (err) {
     throw new Error("Invalid data URL: failed to decode base64 content");
   }
@@ -132,4 +132,16 @@ export function isValidDataUrl(dataUrl) {
  */
 export function blobToFile(blob, filename = "image.png") {
   return new File([blob], filename, { type: blob.type });
+}
+
+/**
+ * Extract a human-readable message from an error
+ * @param {Error|unknown} error - The error to extract message from
+ * @returns {string} - The error message
+ */
+export function getErrorMessage(error) {
+  if (error && typeof error === "object" && "message" in error) {
+    return error.message;
+  }
+  return String(error);
 }
