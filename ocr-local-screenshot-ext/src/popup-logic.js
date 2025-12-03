@@ -167,7 +167,7 @@ export function init(elements) {
       setProcessing(true);
       const worker = await getWorker();
       updateStatus("Recognizing...");
-      const { data } = await worker.recognize(file);
+      const { data } = await worker.recognize(screenshotFile);
       const text = data.text || "";
       outputEl.value = text;
 
@@ -178,7 +178,7 @@ export function init(elements) {
         if (copied) {
           updateStatus(`Done - ${wordCount} words, ${charCount} chars (copied to clipboard)`);
         } else {
-          updateStatus(`Done - ${wordCount} words, ${characterCount} chars`);
+          updateStatus(`Done - ${wordCount} words, ${charCount} chars`);
         }
       } else {
         updateStatus("Done - no text found");
@@ -213,6 +213,7 @@ export function init(elements) {
 
   /**
    * Crop a data URL to a specific region using a canvas.
+   * Optimized to use only toBlob() and create dataUrl from blob to avoid duplicate encoding.
    */
   async function cropImageToRegion(dataUrl, selectionRect) {
     return new Promise((resolve, reject) => {
@@ -228,11 +229,16 @@ export function init(elements) {
         }
         // Draw only the selected region from the source image onto the canvas
         canvasContext.drawImage(image, selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height, 0, 0, selectionRect.width, selectionRect.height);
-        const croppedDataUrl = canvas.toDataURL("image/png");
+        // Use only toBlob to avoid duplicate encoding, then create data URL from blob
         canvas.toBlob((imageBlob) => {
           if (imageBlob) {
             const croppedFile = new File([imageBlob], "region.png", { type: "image/png" });
-            resolve({ file: croppedFile, dataUrl: croppedDataUrl });
+            const reader = new FileReader();
+            reader.onload = () => {
+              resolve({ file: croppedFile, dataUrl: reader.result });
+            };
+            reader.onerror = () => reject(new Error("Failed to read blob as data URL"));
+            reader.readAsDataURL(imageBlob);
           } else {
             reject(new Error("Failed to create blob from canvas"));
           }

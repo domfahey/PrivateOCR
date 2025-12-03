@@ -27,10 +27,13 @@ export function dataUrlToBlob(dataUrl) {
   const mimeMatch = dataUrlHeader.match(/data:(.*?);base64/);
   const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
   try {
-    const binary = atob(base64);
-    // Use Uint8Array.from for more efficient byte conversion than a manual loop
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    return new Blob([bytes], { type: mime });
+    const binary = atob(base64Content);
+    // Pre-allocate Uint8Array for better performance than Uint8Array.from with callback
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: mimeType });
   } catch (err) {
     throw new Error("Invalid data URL: failed to decode base64 content");
   }
