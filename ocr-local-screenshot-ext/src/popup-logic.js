@@ -25,15 +25,15 @@ export function init(elements) {
   } = elements;
 
   // State variables
-  let workerPromise = null;
-  let currentWorker = null;
+  let tesseractWorkerPromise = null;
+  let currentTesseractWorker = null;
   let isProcessing = false;
   let isCancelled = false;
   let currentImageDataUrl = null;
 
   function togglePreview() {
-    const show = showPreviewCheckbox.checked;
-    if (show && currentImageDataUrl) {
+    const showPreview = showPreviewCheckbox.checked;
+    if (showPreview && currentImageDataUrl) {
       contentArea.classList.add("split-view");
       previewImage.src = currentImageDataUrl;
       // Parent container visibility is handled by CSS .split-view .preview-container
@@ -67,11 +67,11 @@ export function init(elements) {
 
   /**
    * Update the status text and progress bar.
-   * @param {string} msg - Status message to display
+   * @param {string} statusMessage - Status message to display
    * @param {number|null} progress - Progress between 0 and 1, or null
    */
-  function updateStatus(msg, progress = null) {
-    if (statusEl) statusEl.textContent = msg;
+  function updateStatus(statusMessage, progress = null) {
+    if (statusEl) statusEl.textContent = statusMessage;
 
     if (progressTrack && progressIndicator) {
       if (progress !== null) {
@@ -79,7 +79,7 @@ export function init(elements) {
         progressTrack.classList.add("active");
         progressIndicator.classList.remove("indeterminate");
         progressIndicator.style.width = `${progress * 100}%`;
-      } else if (msg.startsWith("Done") || msg.includes("Error") || msg === "Cancelled") {
+      } else if (statusMessage.startsWith("Done") || statusMessage.includes("Error") || statusMessage === "Cancelled") {
         // Finished state: Hide progress bar after a short delay
         setTimeout(() => {
           progressTrack.classList.remove("active");
@@ -92,7 +92,7 @@ export function init(elements) {
         progressIndicator.style.width = "50%"; // Trigger css animation
       }
     }
-    console.log(msg);
+    console.log(statusMessage);
   }
 
   /**
@@ -101,13 +101,13 @@ export function init(elements) {
    * @returns {Promise<Tesseract.Worker>}
    */
   function getWorker() {
-    if (workerPromise) return workerPromise;
+    if (tesseractWorkerPromise) return tesseractWorkerPromise;
 
     isCancelled = false;
 
     // Tesseract.js v5 API: createWorker returns a Promise<Worker>
     // It handles load, loadLanguage, and initialize internally
-    workerPromise = (async () => {
+    tesseractWorkerPromise = (async () => {
       updateStatus("Loading OCR engine...");
       const worker = await createWorker("eng", OEM.LSTM_ONLY, {
         workerPath: chrome.runtime.getURL("vendor/tesseract/worker.min.js"),
@@ -116,12 +116,12 @@ export function init(elements) {
         // Disable Blob URL worker - required for Chrome extension Manifest V3 compliance
         // MV3 does not allow arbitrary blob script execution
         workerBlobURL: false,
-        logger: (m) => {
-          if (m.status) {
-            if (typeof m.progress === "number") {
-              updateStatus(`${m.status} ${(m.progress * 100).toFixed(0)}%`, m.progress);
+        logger: (logMessage) => {
+          if (logMessage.status) {
+            if (typeof logMessage.progress === "number") {
+              updateStatus(`${logMessage.status} ${(logMessage.progress * 100).toFixed(0)}%`, logMessage.progress);
             } else {
-              updateStatus(m.status);
+              updateStatus(logMessage.status);
             }
           }
         },
@@ -130,12 +130,12 @@ export function init(elements) {
         await worker.terminate();
         throw new Error("Cancelled");
       }
-      currentWorker = worker;
+      currentTesseractWorker = worker;
       updateStatus("Ready");
       return worker;
     })();
 
-    return workerPromise;
+    return tesseractWorkerPromise;
   }
 
   /**
@@ -145,15 +145,15 @@ export function init(elements) {
   async function cancelOcr() {
     isCancelled = true;
 
-    if (currentWorker) {
+    if (currentTesseractWorker) {
       try {
-        await currentWorker.terminate();
-      } catch (err) {
+        await currentTesseractWorker.terminate();
+      } catch (error) {
         // Ignore termination errors
       }
     }
-    workerPromise = null;
-    currentWorker = null;
+    tesseractWorkerPromise = null;
+    currentTesseractWorker = null;
     setProcessing(false);
     updateStatus("Cancelled");
   }
@@ -163,8 +163,8 @@ export function init(elements) {
     try {
       await navigator.clipboard.writeText(text);
       return true;
-    } catch (err) {
-      console.error("Clipboard error:", err);
+    } catch (error) {
+      console.error("Clipboard error:", error);
       return false;
     }
   }
@@ -181,17 +181,17 @@ export function init(elements) {
     if (commaIndex === -1) {
       throw new Error("Invalid data URL: missing comma separator");
     }
-    const header = dataUrl.slice(0, commaIndex);
-    const base64 = dataUrl.slice(commaIndex + 1);
-    const mimeMatch = header.match(/data:(.*?);base64/);
-    const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+    const dataUrlHeader = dataUrl.slice(0, commaIndex);
+    const base64Content = dataUrl.slice(commaIndex + 1);
+    const mimeMatch = dataUrlHeader.match(/data:(.*?);base64/);
+    const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
     try {
-      const binary = atob(base64);
-      const len = binary.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-      return new Blob([bytes], { type: mime });
-    } catch (err) {
+      const binaryString = atob(base64Content);
+      const byteLength = binaryString.length;
+      const byteArray = new Uint8Array(byteLength);
+      for (let i = 0; i < byteLength; i++) byteArray[i] = binaryString.charCodeAt(i);
+      return new Blob([byteArray], { type: mimeType });
+    } catch (error) {
       throw new Error("Invalid data URL: failed to decode base64 content");
     }
   }
@@ -201,46 +201,46 @@ export function init(elements) {
    */
   function scaleImageIfNeeded(dataUrl) {
     return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const { width, height } = img;
-        const pixels = width * height;
+      const image = new Image();
+      image.onload = () => {
+        const { width, height } = image;
+        const totalPixels = width * height;
 
         // Check if scaling is needed based on pixel count or dimensions
-        if (pixels <= MAX_PIXELS && width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
+        if (totalPixels <= MAX_PIXELS && width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
           resolve({ dataUrl, scaled: false });
           return;
         }
 
         // Calculate scale factor to fit within limits
-        let scale = 1;
-        if (pixels > MAX_PIXELS) {
-          scale = Math.sqrt(MAX_PIXELS / pixels);
+        let scaleFactor = 1;
+        if (totalPixels > MAX_PIXELS) {
+          scaleFactor = Math.sqrt(MAX_PIXELS / totalPixels);
         }
-        if (width * scale > MAX_DIMENSION) {
-          scale = MAX_DIMENSION / width;
+        if (width * scaleFactor > MAX_DIMENSION) {
+          scaleFactor = MAX_DIMENSION / width;
         }
-        if (height * scale > MAX_DIMENSION) {
-          scale = MAX_DIMENSION / height;
+        if (height * scaleFactor > MAX_DIMENSION) {
+          scaleFactor = MAX_DIMENSION / height;
         }
 
-        const newWidth = Math.floor(width * scale);
-        const newHeight = Math.floor(height * scale);
+        const scaledWidth = Math.floor(width * scaleFactor);
+        const scaledHeight = Math.floor(height * scaleFactor);
 
         const canvas = document.createElement("canvas");
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+        const canvasContext = canvas.getContext("2d");
+        if (!canvasContext) {
           resolve({ dataUrl, scaled: false });
           return;
         }
-        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        canvasContext.drawImage(image, 0, 0, scaledWidth, scaledHeight);
 
         resolve({ dataUrl: canvas.toDataURL("image/png"), scaled: true });
       };
-      img.onerror = () => resolve({ dataUrl, scaled: false });
-      img.src = dataUrl;
+      image.onerror = () => resolve({ dataUrl, scaled: false });
+      image.src = dataUrl;
     });
   }
 
@@ -248,23 +248,23 @@ export function init(elements) {
    * Execute OCR on a file.
    * Manages the UI state and worker lifecycle during recognition.
    */
-  async function runOcrOnFile(file) {
+  async function runOcrOnFile(screenshotFile) {
     try {
       setProcessing(true);
       const worker = await getWorker();
       updateStatus("Recognizing...");
-      const { data } = await worker.recognize(file);
-      const text = data.text || "";
-      outputEl.value = text;
+      const { data } = await worker.recognize(screenshotFile);
+      const recognizedText = data.text || "";
+      outputEl.value = recognizedText;
 
-      if (text.trim()) {
-        const copied = await copyToClipboard(text);
-        const charCount = text.length;
-        const wordCount = text.trim().split(/\s+/).length;
-        if (copied) {
-          updateStatus(`Done - ${wordCount} words, ${charCount} chars (copied to clipboard)`);
+      if (recognizedText.trim()) {
+        const copiedSuccessfully = await copyToClipboard(recognizedText);
+        const characterCount = recognizedText.length;
+        const wordCount = recognizedText.trim().split(/\s+/).length;
+        if (copiedSuccessfully) {
+          updateStatus(`Done - ${wordCount} words, ${characterCount} chars (copied to clipboard)`);
         } else {
-          updateStatus(`Done - ${wordCount} words, ${charCount} chars`);
+          updateStatus(`Done - ${wordCount} words, ${characterCount} chars`);
         }
       } else {
         updateStatus("Done - no text found");
@@ -278,54 +278,54 @@ export function init(elements) {
    * Capture the visible area of the current active tab.
    */
   async function captureCurrentTabAsFile() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!activeTab) {
       throw new Error("No active tab found");
     }
     // Chrome API to capture the visible tab as a PNG data URL
-    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+    const screenshotDataUrl = await chrome.tabs.captureVisibleTab(activeTab.windowId, {
       format: "png",
     });
 
-    const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(dataUrl);
+    const { dataUrl: processedDataUrl, scaled } = await scaleImageIfNeeded(screenshotDataUrl);
     if (scaled) {
       updateStatus("Scaling large image...");
     }
 
-    const blob = dataUrlToBlob(processedUrl);
-    const file = new File([blob], "screenshot.png", { type: blob.type });
-    return { file, dataUrl: processedUrl };
+    const screenshotBlob = dataUrlToBlob(processedDataUrl);
+    const screenshotFile = new File([screenshotBlob], "screenshot.png", { type: screenshotBlob.type });
+    return { file: screenshotFile, dataUrl: processedDataUrl };
   }
 
   /**
    * Crop a data URL to a specific region using a canvas.
    */
-  async function cropImageToRegion(dataUrl, rect) {
+  async function cropImageToRegion(dataUrl, selectionRect) {
     return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
+      const image = new Image();
+      image.onload = () => {
         const canvas = document.createElement("canvas");
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
+        canvas.width = selectionRect.width;
+        canvas.height = selectionRect.height;
+        const canvasContext = canvas.getContext("2d");
+        if (!canvasContext) {
           reject(new Error("Failed to get canvas context"));
           return;
         }
         // Draw only the selected region from the source image onto the canvas
-        ctx.drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+        canvasContext.drawImage(image, selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height, 0, 0, selectionRect.width, selectionRect.height);
         const croppedDataUrl = canvas.toDataURL("image/png");
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], "region.png", { type: "image/png" });
-            resolve({ file, dataUrl: croppedDataUrl });
+        canvas.toBlob((imageBlob) => {
+          if (imageBlob) {
+            const croppedFile = new File([imageBlob], "region.png", { type: "image/png" });
+            resolve({ file: croppedFile, dataUrl: croppedDataUrl });
           } else {
             reject(new Error("Failed to create blob from canvas"));
           }
         }, "image/png");
       };
-      img.onerror = () => reject(new Error("Failed to load image for cropping"));
-      img.src = dataUrl;
+      image.onerror = () => reject(new Error("Failed to load image for cropping"));
+      image.src = dataUrl;
     });
   }
 
@@ -334,15 +334,15 @@ export function init(elements) {
     try {
       outputEl.value = "";
       updateStatus("Capturing screenshot...");
-      const { file, dataUrl } = await captureCurrentTabAsFile();
+      const { file: screenshotFile, dataUrl } = await captureCurrentTabAsFile();
       updatePreview(dataUrl);
-      await runOcrOnFile(file);
-    } catch (err) {
-      if (isCancelled || (err && err.message === "Cancelled")) {
+      await runOcrOnFile(screenshotFile);
+    } catch (error) {
+      if (isCancelled || (error && error.message === "Cancelled")) {
         updateStatus("Cancelled");
       } else {
-        console.error(err);
-        updateStatus("Error: " + (err && err.message ? err.message : String(err)));
+        console.error(error);
+        updateStatus("Error: " + (error && error.message ? error.message : String(error)));
       }
       setProcessing(false);
     }
@@ -358,19 +358,19 @@ export function init(elements) {
       outputEl.value = "";
       updateStatus("Select a region on the page...");
 
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-      if (!tab || !tab.url) {
+      if (!activeTab || !activeTab.url) {
         updateStatus("Error: Cannot access this tab");
         return;
       }
       // Prevent injection on restricted pages where content scripts can't run
       if (
-        tab.url.startsWith("chrome://") ||
-        tab.url.startsWith("chrome-extension://") ||
-        tab.url.startsWith("about:") ||
-        tab.url.startsWith("edge://") ||
-        tab.url.startsWith("brave://")
+        activeTab.url.startsWith("chrome://") ||
+        activeTab.url.startsWith("chrome-extension://") ||
+        activeTab.url.startsWith("about:") ||
+        activeTab.url.startsWith("edge://") ||
+        activeTab.url.startsWith("brave://")
       ) {
         updateStatus("Error: Cannot select region on browser pages");
         return;
@@ -378,36 +378,36 @@ export function init(elements) {
 
       // Inject the selection overlay script
       await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
+        target: { tabId: activeTab.id },
         files: ["src/content.js"],
       });
 
       // Close the popup so the user can interact with the page
       // The background script will handle the 'regionSelected' message and re-open the popup
       window.close();
-    } catch (err) {
-      console.error(err);
-      const msg = err && err.message ? err.message : String(err);
-      if (msg.includes("Cannot access") || msg.includes("chrome://")) {
+    } catch (error) {
+      console.error(error);
+      const errorMessage = error && error.message ? error.message : String(error);
+      if (errorMessage.includes("Cannot access") || errorMessage.includes("chrome://")) {
         updateStatus("Error: Cannot select region on this page");
       } else {
-        updateStatus("Error: " + msg);
+        updateStatus("Error: " + errorMessage);
       }
     }
   }
 
-  async function handleRegionCapture(dataUrl, rect) {
+  async function handleRegionCapture(screenshotDataUrl, selectionRect) {
     try {
       updateStatus("Cropping region...");
-      const { file, dataUrl: croppedDataUrl } = await cropImageToRegion(dataUrl, rect);
+      const { file: croppedFile, dataUrl: croppedDataUrl } = await cropImageToRegion(screenshotDataUrl, selectionRect);
       updatePreview(croppedDataUrl);
-      await runOcrOnFile(file);
-    } catch (err) {
-      if (isCancelled || (err && err.message === "Cancelled")) {
+      await runOcrOnFile(croppedFile);
+    } catch (error) {
+      if (isCancelled || (error && error.message === "Cancelled")) {
         updateStatus("Cancelled");
       } else {
-        console.error(err);
-        updateStatus("Error: " + (err && err.message ? err.message : String(err)));
+        console.error(error);
+        updateStatus("Error: " + (error && error.message ? error.message : String(error)));
       }
       setProcessing(false);
     }
@@ -422,13 +422,13 @@ export function init(elements) {
   });
 
   copyBtn.addEventListener("click", async () => {
-    const text = outputEl.value || "";
-    if (!text.trim()) {
+    const outputText = outputEl.value || "";
+    if (!outputText.trim()) {
       updateStatus("No text to copy");
       return;
     }
-    const copied = await copyToClipboard(text);
-    if (copied) {
+    const copiedSuccessfully = await copyToClipboard(outputText);
+    if (copiedSuccessfully) {
       updateStatus("Copied to clipboard");
     } else {
       updateStatus("Could not copy to clipboard");
@@ -448,21 +448,21 @@ export function init(elements) {
     if (urlParams.get("regionMode") === "true") {
       try {
         // Retrieve the captured data stored by the background script
-        const result = await chrome.storage.local.get("pendingRegionOcr");
-        if (result.pendingRegionOcr) {
-          const { dataUrl, rect, timestamp } = result.pendingRegionOcr;
+        const storageResult = await chrome.storage.local.get("pendingRegionOcr");
+        if (storageResult.pendingRegionOcr) {
+          const { dataUrl: screenshotDataUrl, rect: selectionRect, timestamp: captureTimestamp } = storageResult.pendingRegionOcr;
           // Clean up storage immediately
           await chrome.storage.local.remove("pendingRegionOcr");
           // Only process if data is fresh (< 1 minute) to avoid processing stale data
-          if (Date.now() - timestamp < 60000) {
-            await handleRegionCapture(dataUrl, rect);
+          if (Date.now() - captureTimestamp < 60000) {
+            await handleRegionCapture(screenshotDataUrl, selectionRect);
           } else {
             updateStatus("Region data expired, please try again");
           }
         }
-      } catch (err) {
-        console.error("Error loading region data:", err);
-        updateStatus("Error: " + (err.message || String(err)));
+      } catch (error) {
+        console.error("Error loading region data:", error);
+        updateStatus("Error: " + (error.message || String(error)));
       }
     }
   }
