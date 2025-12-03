@@ -8,19 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - 2025-11-28
 
 ### Changed
+
 - **Renaming:** Project renamed to **PrivateOCR** to better reflect its core value proposition.
 - **UI:** Added a side-by-side view option to show the source image alongside the extracted text.
 - **Window Size:** Increased the popup window size to 780x580px to accommodate the new split view and improve usability.
 
 ### Changed
+
 - Switched to the "Best" English language model (`eng.traineddata` from `tessdata_best`) to optimize for OCR accuracy over speed. This increases the bundle size by ~10MB but significantly improves recognition quality.
 
 ### Fixed
+
 - Resolved `NetworkError` in Tesseract.js v6 by bundling the missing LSTM core files (`tesseract-core-lstm.wasm` and `tesseract-core-simd-lstm.wasm`), which are now required by default.
 
 ## [0.3.0] - 2025-11-28
 
 ### Changed
+
 - Upgraded Tesseract.js to version 6.0.0 for improved performance and file size.
 - Updated bundled core files to Tesseract.js-core v5.1.0 (WASM and SIMD support).
 - Configured `createWorker` to use the new v6 API and correctly point to local worker/core resources.

@@ -1,11 +1,7 @@
 // Privacy: Screenshots and OCR text exist in memory only, never persisted
 // Privacy: No logging of OCR text content or screenshot data
 
-import {
-  dataUrlToBlob,
-  scaleImageIfNeeded,
-  copyToClipboard,
-} from "./utils.js";
+import { dataUrlToBlob, scaleImageIfNeeded, copyToClipboard, countWords } from "../src/utils.js";
 
 /**
  * Initialize the popup logic.
@@ -171,16 +167,16 @@ export function init(elements) {
       setProcessing(true);
       const worker = await getWorker();
       updateStatus("Recognizing...");
-      const { data } = await worker.recognize(screenshotFile);
-      const recognizedText = data.text || "";
-      outputEl.value = recognizedText;
+      const { data } = await worker.recognize(file);
+      const text = data.text || "";
+      outputEl.value = text;
 
-      if (recognizedText.trim()) {
-        const copiedSuccessfully = await copyToClipboard(recognizedText);
-        const characterCount = recognizedText.length;
-        const wordCount = recognizedText.trim().split(/\s+/).length;
-        if (copiedSuccessfully) {
-          updateStatus(`Done - ${wordCount} words, ${characterCount} chars (copied to clipboard)`);
+      if (text.trim()) {
+        const copied = await copyToClipboard(text);
+        const charCount = text.length;
+        const wordCount = countWords(text);
+        if (copied) {
+          updateStatus(`Done - ${wordCount} words, ${charCount} chars (copied to clipboard)`);
         } else {
           updateStatus(`Done - ${wordCount} words, ${characterCount} chars`);
         }
