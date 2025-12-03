@@ -22,17 +22,17 @@ export function dataUrlToBlob(dataUrl) {
   if (commaIndex === -1) {
     throw new Error("Invalid data URL: missing comma separator");
   }
-  const header = dataUrl.slice(0, commaIndex);
-  const base64 = dataUrl.slice(commaIndex + 1);
-  const mimeMatch = header.match(/data:(.*?);base64/);
-  const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+  const dataUrlHeader = dataUrl.slice(0, commaIndex);
+  const base64Content = dataUrl.slice(commaIndex + 1);
+  const mimeMatch = dataUrlHeader.match(/data:(.*?);base64/);
+  const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
   try {
-    const binary = atob(base64);
-    const len = binary.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-    return new Blob([bytes], { type: mime });
-  } catch (err) {
+    const binaryString = atob(base64Content);
+    const byteLength = binaryString.length;
+    const byteArray = new Uint8Array(byteLength);
+    for (let i = 0; i < byteLength; i++) byteArray[i] = binaryString.charCodeAt(i);
+    return new Blob([byteArray], { type: mimeType });
+  } catch (error) {
     throw new Error("Invalid data URL: failed to decode base64 content");
   }
 }
@@ -44,47 +44,47 @@ export function dataUrlToBlob(dataUrl) {
  */
 export function scaleImageIfNeeded(dataUrl) {
   return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const { width, height } = img;
-      const pixels = width * height;
+    const image = new Image();
+    image.onload = () => {
+      const { width, height } = image;
+      const totalPixels = width * height;
 
       // Check if scaling is needed
-      if (pixels <= MAX_PIXELS && width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
+      if (totalPixels <= MAX_PIXELS && width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
         resolve({ dataUrl, scaled: false });
         return;
       }
 
       // Calculate scale factor
-      let scale = 1;
-      if (pixels > MAX_PIXELS) {
-        scale = Math.sqrt(MAX_PIXELS / pixels);
+      let scaleFactor = 1;
+      if (totalPixels > MAX_PIXELS) {
+        scaleFactor = Math.sqrt(MAX_PIXELS / totalPixels);
       }
-      if (width * scale > MAX_DIMENSION) {
-        scale = MAX_DIMENSION / width;
+      if (width * scaleFactor > MAX_DIMENSION) {
+        scaleFactor = MAX_DIMENSION / width;
       }
-      if (height * scale > MAX_DIMENSION) {
-        scale = MAX_DIMENSION / height;
+      if (height * scaleFactor > MAX_DIMENSION) {
+        scaleFactor = MAX_DIMENSION / height;
       }
 
-      const newWidth = Math.floor(width * scale);
-      const newHeight = Math.floor(height * scale);
+      const scaledWidth = Math.floor(width * scaleFactor);
+      const scaledHeight = Math.floor(height * scaleFactor);
 
       // Scale on canvas
       const canvas = document.createElement("canvas");
-      canvas.width = newWidth;
-      canvas.height = newHeight;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
+      canvas.width = scaledWidth;
+      canvas.height = scaledHeight;
+      const canvasContext = canvas.getContext("2d");
+      if (!canvasContext) {
         resolve({ dataUrl, scaled: false });
         return;
       }
-      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+      canvasContext.drawImage(image, 0, 0, scaledWidth, scaledHeight);
 
       resolve({ dataUrl: canvas.toDataURL("image/png"), scaled: true });
     };
-    img.onerror = () => resolve({ dataUrl, scaled: false });
-    img.src = dataUrl;
+    image.onerror = () => resolve({ dataUrl, scaled: false });
+    image.src = dataUrl;
   });
 }
 
@@ -98,8 +98,8 @@ export async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
     return true;
-  } catch (err) {
-    console.error("Clipboard error:", err);
+  } catch (error) {
+    console.error("Clipboard error:", error);
     return false;
   }
 }

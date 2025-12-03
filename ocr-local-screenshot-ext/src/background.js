@@ -9,14 +9,14 @@ chrome.runtime.onMessage.addListener((message, sender, _sendResponse) => {
 /**
  * Handle the region selection message from the content script.
  * Captures the tab, stores data, and opens the popup to process the region.
- * @param {chrome.tabs.Tab} tab - The tab where selection occurred
- * @param {Object} rect - The selected region coordinates (scaled for DPI)
+ * @param {chrome.tabs.Tab} sourceTab - The tab where selection occurred
+ * @param {Object} selectedRegion - The selected region coordinates (scaled for DPI)
  */
-async function handleRegionSelection(tab, rect) {
+async function handleRegionSelection(sourceTab, selectedRegion) {
   try {
     // Capture the visible tab
     // This must be done in background/popup context, not content script
-    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+    const screenshotDataUrl = await chrome.tabs.captureVisibleTab(sourceTab.windowId, {
       format: "png",
     });
 
@@ -24,8 +24,8 @@ async function handleRegionSelection(tab, rect) {
     // We use storage instead of URL parameters because data URLs can be very large
     await chrome.storage.local.set({
       pendingRegionOcr: {
-        dataUrl: dataUrl,
-        rect: rect,
+        dataUrl: screenshotDataUrl,
+        rect: selectedRegion,
         timestamp: Date.now(),
       },
     });
@@ -39,7 +39,7 @@ async function handleRegionSelection(tab, rect) {
       width: 400,
       height: 400,
     });
-  } catch (err) {
-    console.error("Error capturing region:", err);
+  } catch (error) {
+    console.error("Error capturing region:", error);
   }
 }
