@@ -1,7 +1,11 @@
 // Privacy: Screenshots and OCR text exist in memory only, never persisted
 // Privacy: No logging of OCR text content or screenshot data
 
-import { MAX_PIXELS, MAX_DIMENSION } from "../src/utils.js";
+import {
+  dataUrlToBlob,
+  scaleImageIfNeeded,
+  copyToClipboard,
+} from "./utils.js";
 
 /**
  * Initialize the popup logic.
@@ -156,92 +160,6 @@ export function init(elements) {
     currentTesseractWorker = null;
     setProcessing(false);
     updateStatus("Cancelled");
-  }
-
-  async function copyToClipboard(text) {
-    if (!text) return false;
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (error) {
-      console.error("Clipboard error:", error);
-      return false;
-    }
-  }
-
-  /**
-   * Convert data URL to Blob.
-   * Manually decodes base64 to avoid using `fetch`, which clarifies that no network request is made.
-   */
-  function dataUrlToBlob(dataUrl) {
-    if (!dataUrl || typeof dataUrl !== "string") {
-      throw new Error("Invalid data URL: must be a non-empty string");
-    }
-    const commaIndex = dataUrl.indexOf(",");
-    if (commaIndex === -1) {
-      throw new Error("Invalid data URL: missing comma separator");
-    }
-    const dataUrlHeader = dataUrl.slice(0, commaIndex);
-    const base64Content = dataUrl.slice(commaIndex + 1);
-    const mimeMatch = dataUrlHeader.match(/data:(.*?);base64/);
-    const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
-    try {
-      const binaryString = atob(base64Content);
-      const byteLength = binaryString.length;
-      const byteArray = new Uint8Array(byteLength);
-      for (let i = 0; i < byteLength; i++) byteArray[i] = binaryString.charCodeAt(i);
-      return new Blob([byteArray], { type: mimeType });
-    } catch (error) {
-      throw new Error("Invalid data URL: failed to decode base64 content");
-    }
-  }
-
-  /**
-   * Scale down the image if it exceeds size limits to improve OCR performance and avoid crashes.
-   */
-  function scaleImageIfNeeded(dataUrl) {
-    return new Promise((resolve) => {
-      const image = new Image();
-      image.onload = () => {
-        const { width, height } = image;
-        const totalPixels = width * height;
-
-        // Check if scaling is needed based on pixel count or dimensions
-        if (totalPixels <= MAX_PIXELS && width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
-          resolve({ dataUrl, scaled: false });
-          return;
-        }
-
-        // Calculate scale factor to fit within limits
-        let scaleFactor = 1;
-        if (totalPixels > MAX_PIXELS) {
-          scaleFactor = Math.sqrt(MAX_PIXELS / totalPixels);
-        }
-        if (width * scaleFactor > MAX_DIMENSION) {
-          scaleFactor = MAX_DIMENSION / width;
-        }
-        if (height * scaleFactor > MAX_DIMENSION) {
-          scaleFactor = MAX_DIMENSION / height;
-        }
-
-        const scaledWidth = Math.floor(width * scaleFactor);
-        const scaledHeight = Math.floor(height * scaleFactor);
-
-        const canvas = document.createElement("canvas");
-        canvas.width = scaledWidth;
-        canvas.height = scaledHeight;
-        const canvasContext = canvas.getContext("2d");
-        if (!canvasContext) {
-          resolve({ dataUrl, scaled: false });
-          return;
-        }
-        canvasContext.drawImage(image, 0, 0, scaledWidth, scaledHeight);
-
-        resolve({ dataUrl: canvas.toDataURL("image/png"), scaled: true });
-      };
-      image.onerror = () => resolve({ dataUrl, scaled: false });
-      image.src = dataUrl;
-    });
   }
 
   /**
