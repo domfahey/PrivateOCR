@@ -50,6 +50,7 @@ export function init(elements) {
   let currentWorker = null;
   let isProcessing = false;
   let isCancelled = false;
+  let operationId = 0; // Unique ID for each OCR operation to prevent race conditions
   let currentImageDataUrl = null;
   let sourceWindowId = null; // Original window ID when in region mode
   let isRegionModePopup = false; // True if opened as region mode popup
@@ -244,6 +245,8 @@ export function init(elements) {
     if (workerPromise) return workerPromise;
 
     isCancelled = false;
+    // Increment operation ID for this new operation
+    const myOperationId = ++operationId;
 
     // Tesseract.js v7 API: createWorker returns a Promise<Worker>
     // It handles load, loadLanguage, and initialize internally
@@ -266,7 +269,8 @@ export function init(elements) {
           }
         },
       });
-      if (isCancelled) {
+      // Check if this operation was cancelled OR if a newer operation started
+      if (isCancelled || myOperationId !== operationId) {
         await worker.terminate();
         throw new Error("Cancelled");
       }
@@ -444,10 +448,22 @@ export function init(elements) {
       format: "png",
     });
 
-    const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(dataUrl);
-    if (scaled) {
+    // Check if scaling is needed and show status BEFORE the expensive operation
+    const img = new Image();
+    await new Promise((resolve) => {
+      img.onload = resolve;
+      img.onerror = resolve;
+      img.src = dataUrl;
+    });
+    const needsScaling =
+      img.width * img.height > MAX_PIXELS ||
+      img.width > MAX_DIMENSION ||
+      img.height > MAX_DIMENSION;
+    if (needsScaling) {
       updateStatus("Scaling large image...");
     }
+
+    const { dataUrl: processedUrl } = await scaleImageIfNeeded(dataUrl);
 
     const blob = dataUrlToBlob(processedUrl);
     const file = new File([blob], "screenshot.png", { type: blob.type });
