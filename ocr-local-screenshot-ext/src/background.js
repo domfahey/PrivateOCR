@@ -1,16 +1,57 @@
-// Background service worker for region selection coordination
+/**
+ * Background Service Worker for PrivateOCR
+ *
+ * Handles communication between the content script (region selection)
+ * and the popup. This service worker is necessary because content scripts
+ * cannot directly call chrome.tabs.captureVisibleTab.
+ *
+ * Flow:
+ * 1. content.js sends "regionSelected" message with coordinates
+ * 2. This worker captures the visible tab as a screenshot
+ * 3. Screenshot + coordinates are stored in chrome.storage.local
+ * 4. A new popup window is opened with ?regionMode=true
+ * 5. popup-logic.js retrieves the data and performs OCR on the region
+ *
+ * @module background
+ */
 
+/**
+ * Listen for messages from content scripts.
+ * Currently handles "regionSelected" messages from the region selection overlay.
+ */
 chrome.runtime.onMessage.addListener((message, sender, _sendResponse) => {
   if (message.type === "regionSelected") {
     handleRegionSelection(sender.tab, message.rect);
+  } else if (message.type === "regionCancelled") {
+    handleRegionCancelled(message.reason);
   }
 });
 
 /**
+ * Handle region selection cancellation.
+ * Shows a notification to the user explaining why selection was cancelled.
+ *
+ * @param {string} reason - The reason for cancellation (e.g., "tooSmall")
+ */
+function handleRegionCancelled(reason) {
+  if (reason === "tooSmall") {
+    // Show a notification that selection was too small
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "icons/icon48.png",
+      title: "Selection Too Small",
+      message: "Please drag a larger area (at least 10x10 pixels) to select a region for OCR.",
+    });
+  }
+}
+
+/**
  * Handle the region selection message from the content script.
  * Captures the tab, stores data, and opens the popup to process the region.
+ *
  * @param {chrome.tabs.Tab} tab - The tab where selection occurred
- * @param {Object} rect - The selected region coordinates (scaled for DPI)
+ * @param {{x: number, y: number, width: number, height: number}} rect - The selected region coordinates (scaled for device pixel ratio)
+ * @returns {Promise<void>}
  */
 async function handleRegionSelection(tab, rect) {
   try {
@@ -32,12 +73,12 @@ async function handleRegionSelection(tab, rect) {
 
     // Open the popup programmatically by opening a new window with popup.html
     // Note: chrome.action.openPopup() is not available in background service workers
-    // So we'll open the extension popup as a small independent window
+    // Size must accommodate min-width: 780px and min-height: 580px from styles.css
     chrome.windows.create({
       url: chrome.runtime.getURL("src/popup.html") + "?regionMode=true",
       type: "popup",
-      width: 400,
-      height: 400,
+      width: 800,
+      height: 600,
     });
   } catch (err) {
     console.error("Error capturing region:", err);

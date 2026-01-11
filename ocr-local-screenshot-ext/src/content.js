@@ -1,16 +1,40 @@
-// Region selection overlay for OCR
+/**
+ * Region Selection Overlay for PrivateOCR
+ *
+ * This content script is injected into the active tab when the user clicks
+ * "Select Region". It creates a full-page overlay that allows the user to
+ * draw a rectangle around the area they want to OCR.
+ *
+ * Flow:
+ * 1. popup-logic.js injects this script via chrome.scripting.executeScript
+ * 2. User draws a selection rectangle on the overlay
+ * 3. Coordinates are sent to background.js via chrome.runtime.sendMessage
+ * 4. background.js captures the tab and opens the popup in region mode
+ *
+ * @module content
+ */
 (function () {
-  // Prevent multiple injections
+  // Prevent multiple injections (e.g., if user clicks "Select Region" twice)
   if (window.__ocrRegionSelectorActive) return;
   window.__ocrRegionSelectorActive = true;
 
+  /** @type {HTMLDivElement|null} Dark overlay covering the page */
   let overlay = null;
+  /** @type {HTMLDivElement|null} Dashed rectangle showing user's selection */
   let selectionBox = null;
+  /** @type {HTMLDivElement|null} Instruction banner at top of screen */
   let instructions = null;
+  /** @type {number} X coordinate where drag started */
   let startX = 0;
+  /** @type {number} Y coordinate where drag started */
   let startY = 0;
+  /** @type {boolean} Whether the user is currently dragging */
   let isSelecting = false;
 
+  /**
+   * Create and inject the overlay elements into the page.
+   * Sets up mouse and keyboard event listeners for selection.
+   */
   function createOverlay() {
     // Create overlay elements with high z-index to ensure they sit on top of all page content
     overlay = document.createElement("div");
@@ -60,6 +84,11 @@
     document.addEventListener("keydown", handleKeyDown);
   }
 
+  /**
+   * Handle mousedown to start selection.
+   * Records the starting position and shows the selection box.
+   * @param {MouseEvent} e - The mousedown event
+   */
   function handleMouseDown(e) {
     e.preventDefault();
     isSelecting = true;
@@ -72,6 +101,11 @@
     selectionBox.style.display = "block";
   }
 
+  /**
+   * Handle mousemove to update the selection box size.
+   * Allows dragging in any direction (handles negative widths/heights).
+   * @param {MouseEvent} e - The mousemove event
+   */
   function handleMouseMove(e) {
     if (!isSelecting) return;
     e.preventDefault();
@@ -90,6 +124,12 @@
     selectionBox.style.height = height + "px";
   }
 
+  /**
+   * Handle mouseup to complete the selection.
+   * Calculates final coordinates, scales for device pixel ratio,
+   * and sends the selection to the background script.
+   * @param {MouseEvent} e - The mouseup event
+   */
   function handleMouseUp(e) {
     if (!isSelecting) return;
     isSelecting = false;
@@ -107,6 +147,15 @@
 
     // Require minimum selection size
     if (rect.width < 10 || rect.height < 10) {
+      // Notify background script that selection was cancelled due to size
+      chrome.runtime
+        .sendMessage({
+          type: "regionCancelled",
+          reason: "tooSmall",
+        })
+        .catch(() => {
+          // Ignore errors if background script is not listening
+        });
       cleanup();
       return;
     }
@@ -143,12 +192,21 @@
       });
   }
 
+  /**
+   * Handle keyboard events.
+   * Escape key cancels the selection.
+   * @param {KeyboardEvent} e - The keydown event
+   */
   function handleKeyDown(e) {
     if (e.key === "Escape") {
       cleanup();
     }
   }
 
+  /**
+   * Remove all overlay elements and event listeners.
+   * Called after selection completes or is cancelled.
+   */
   function cleanup() {
     window.__ocrRegionSelectorActive = false;
     if (overlay) overlay.remove();

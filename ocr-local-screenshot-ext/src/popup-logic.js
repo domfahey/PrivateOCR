@@ -1,5 +1,19 @@
-// Privacy: Screenshots and OCR text exist in memory only, never persisted
-// Privacy: No logging of OCR text content or screenshot data
+/**
+ * Popup Logic for PrivateOCR
+ *
+ * Main business logic for the extension popup. Handles:
+ * - Full-page OCR: Capture visible tab and run Tesseract.js
+ * - Region OCR: Process cropped regions from content script selection
+ * - UI state management: Progress, status, zoom controls
+ * - Tesseract worker lifecycle: Lazy initialization, cancellation
+ *
+ * Privacy guarantees:
+ * - Screenshots and OCR text exist in memory only, never persisted
+ * - No logging of OCR text content or screenshot data
+ * - No network requests (all resources loaded from extension)
+ *
+ * @module popup-logic
+ */
 
 import { MAX_PIXELS, MAX_DIMENSION } from "../src/utils.js";
 

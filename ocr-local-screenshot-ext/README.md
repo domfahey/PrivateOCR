@@ -31,9 +31,61 @@ For more detailed instructions, see [INSTALL.md](../INSTALL.md).
 ## Usage
 
 1.  **Pin the extension** to your toolbar for easy access.
-2.  **Full Page**: Click the extension icon -> **"Capture Tab"**.
-3.  **Specific Area**: Click **"Select Region"** -> Click and drag on the webpage to select text.
+2.  **Full Page**: Click the extension icon → **"Capture Tab"**.
+3.  **Specific Area**: Click **"Select Region"** → Click and drag on the webpage to select text.
 4.  The text will be extracted and copied to your clipboard automatically.
+
+## Features in Detail
+
+### Region Selection
+
+Select a specific area of a webpage for more accurate OCR:
+
+1. Click **"Select Region"** in the popup
+2. The popup closes and a dark overlay appears on the page
+3. Click and drag to draw a rectangle around the text you want
+4. Release to capture — the popup reopens with the OCR result
+5. Press **Escape** to cancel without capturing
+
+**Tips:**
+
+- Selections must be at least 10×10 pixels
+- Works on regular webpages (not on `chrome://` or browser settings pages)
+- High-DPI displays are automatically handled
+
+### Settings Page
+
+Access additional options via the **gear icon** in the popup header:
+
+- Opens the full settings page in a new tab
+- Configure extension preferences (when available)
+
+### Zoom Controls
+
+The popup includes zoom controls for both the image preview and text output:
+
+**Image Preview:**
+
+- **+** / **−** buttons: Zoom in/out on the captured screenshot
+- **Fit** button: Reset to fit the image within the panel
+
+**Text Output:**
+
+- **A+** / **A−** buttons: Increase/decrease text size (10px–32px range)
+
+### Split View Toggle
+
+Click the **image icon** in the toolbar to show/hide the screenshot preview panel. The split view lets you compare the original image with the extracted text.
+
+## Limitations
+
+- **Image size**: Screenshots larger than 5MP are automatically scaled down
+- **Languages**: English only by default (additional languages can be added manually)
+- **Page restrictions**: Cannot capture `chrome://`, `chrome-extension://`, or browser settings pages
+
+## Troubleshooting
+
+Having issues? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for solutions to common problems.
 
 ## Development
 
