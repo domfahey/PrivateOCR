@@ -56,7 +56,7 @@ export function init(elements) {
 
   // UI State
   let isPreviewVisible = true;
-  let imgScale = 1.0;
+  let textSize = 15;
   let isImgFit = true;
   let textSize = 14;
   let copyButtonTimeoutId = null; // Track timeout to prevent race condition
