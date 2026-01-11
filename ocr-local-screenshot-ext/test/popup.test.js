@@ -696,23 +696,13 @@ describe("Popup Logic Integration", () => {
       it("should show scaling status BEFORE scaling completes, not after", async () => {
         vi.clearAllMocks();
 
-        // Track status updates in order
+        // Track status updates via console.log (which updateStatus calls)
         const statusUpdates = [];
-        const originalTextContent = Object.getOwnPropertyDescriptor(
-          Object.getPrototypeOf(elements.statusEl),
-          "textContent"
-        );
-
-        Object.defineProperty(elements.statusEl, "textContent", {
-          set(value) {
-            statusUpdates.push(value);
-            originalTextContent.set.call(this, value);
-          },
-          get() {
-            return originalTextContent.get.call(this);
-          },
-          configurable: true,
-        });
+        const originalLog = console.log;
+        console.log = (msg) => {
+          statusUpdates.push(msg);
+          originalLog(msg);
+        };
 
         // Mock a large image that triggers scaling
         global.Image = class {
@@ -736,9 +726,16 @@ describe("Popup Logic Integration", () => {
         elements.screenshotBtn.click();
         await flushAll();
 
-        // "Scaling large image..." should appear BEFORE any status that comes after capture
-        const scalingIndex = statusUpdates.findIndex((s) => s.includes("Scaling"));
-        const recognizingIndex = statusUpdates.findIndex((s) => s.includes("Recognizing"));
+        // Restore console.log
+        console.log = originalLog;
+
+        // "Scaling large image..." should appear BEFORE "Recognizing..."
+        const scalingIndex = statusUpdates.findIndex((s) =>
+          typeof s === "string" && s.includes("Scaling")
+        );
+        const recognizingIndex = statusUpdates.findIndex((s) =>
+          typeof s === "string" && s.includes("Recognizing")
+        );
 
         // If scaling happens, it should be before recognizing
         if (scalingIndex !== -1 && recognizingIndex !== -1) {

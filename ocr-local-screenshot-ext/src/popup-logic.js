@@ -15,7 +15,7 @@
  * @module popup-logic
  */
 
-import { MAX_PIXELS, MAX_DIMENSION } from "../src/utils.js";
+import { MAX_PIXELS, MAX_DIMENSION, dataUrlToBlob } from "../src/utils.js";
 
 /**
  * Initialize the popup logic.
@@ -244,8 +244,7 @@ export function init(elements) {
   function getWorker() {
     if (workerPromise) return workerPromise;
 
-    isCancelled = false;
-    // Increment operation ID for this new operation
+    // Increment operation ID for this new worker creation
     const myOperationId = ++operationId;
 
     // Tesseract.js v7 API: createWorker returns a Promise<Worker>
@@ -315,33 +314,6 @@ export function init(elements) {
     } catch (err) {
       console.error("Clipboard error:", err);
       return false;
-    }
-  }
-
-  /**
-   * Convert data URL to Blob.
-   * Manually decodes base64 to avoid using `fetch`, which clarifies that no network request is made.
-   */
-  function dataUrlToBlob(dataUrl) {
-    if (!dataUrl || typeof dataUrl !== "string") {
-      throw new Error("Invalid data URL: must be a non-empty string");
-    }
-    const commaIndex = dataUrl.indexOf(",");
-    if (commaIndex === -1) {
-      throw new Error("Invalid data URL: missing comma separator");
-    }
-    const header = dataUrl.slice(0, commaIndex);
-    const base64 = dataUrl.slice(commaIndex + 1);
-    const mimeMatch = header.match(/data:(.*?);base64/);
-    const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
-    try {
-      const binary = atob(base64);
-      const len = binary.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-      return new Blob([bytes], { type: mime });
-    } catch (err) {
-      throw new Error("Invalid data URL: failed to decode base64 content");
     }
   }
 
@@ -504,6 +476,9 @@ export function init(elements) {
 
   async function handleScreenshotClick() {
     if (isProcessing) return;
+    // Reset cancellation state and increment operation ID for new user action
+    isCancelled = false;
+    operationId++;
     // Set processing immediately to prevent double-clicks and show cancel button
     setProcessing(true);
     try {
@@ -572,6 +547,10 @@ export function init(elements) {
   }
 
   async function handleRegionCapture(dataUrl, rect) {
+    // Reset cancellation state and increment operation ID for new user action
+    isCancelled = false;
+    operationId++;
+    setProcessing(true);
     try {
       updateStatus("Cropping region...");
       const { dataUrl: croppedDataUrl } = await cropImageToRegion(dataUrl, rect);
