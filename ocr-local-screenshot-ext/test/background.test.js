@@ -63,7 +63,7 @@ describe("Background Service Worker", () => {
       );
     });
 
-    it("should open popup window after capturing", async () => {
+    it("should open popup window with adequate size for UI", async () => {
       const mockTab = { id: 1, windowId: 1 };
       const mockRect = { x: 0, y: 0, width: 100, height: 100 };
 
@@ -71,12 +71,13 @@ describe("Background Service Worker", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
+      // Popup must be at least 800x600 to accommodate min-width: 780px and min-height: 580px
       expect(chrome.windows.create).toHaveBeenCalledWith(
         expect.objectContaining({
           url: expect.stringContaining("popup.html?regionMode=true"),
           type: "popup",
-          width: 400,
-          height: 400,
+          width: 800,
+          height: 600,
         })
       );
     });

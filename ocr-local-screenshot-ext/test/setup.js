@@ -32,6 +32,9 @@ const createChromeMock = () => ({
   windows: {
     create: vi.fn().mockResolvedValue({ id: 1 }),
   },
+  notifications: {
+    create: vi.fn().mockResolvedValue("notification-id"),
+  },
 });
 
 // Mock Tesseract.js (v5 API)

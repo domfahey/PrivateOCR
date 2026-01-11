@@ -121,6 +121,7 @@ main {
 
 .preview-container {
   display: none; /* Hidden by default */
+  position: relative; /* Required for absolutely positioned .preview-toolbar */
   flex: 1;
   border: 1px solid var(--md-sys-color-outline);
   border-radius: 4px;
@@ -171,7 +172,7 @@ main {
   scrollbar-color: #5f6368 #202124;
 }
 
-#preview-image {
+#previewImage {
   /* Default state is "fit" handled by JS or CSS classes */
   max-width: 100%;
   max-height: 100%;

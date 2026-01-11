@@ -133,7 +133,7 @@ describe("Content Script - Region Selection", () => {
       );
     });
 
-    it("should not send message for too small selection", async () => {
+    it("should not send regionSelected message for too small selection", async () => {
       await import("../src/content.js");
 
       const overlay = document.querySelector('div[style*="cursor: crosshair"]');
@@ -156,7 +156,44 @@ describe("Content Script - Region Selection", () => {
         })
       );
 
-      expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
+      // Should NOT send regionSelected (but may send regionCancelled)
+      expect(chrome.runtime.sendMessage).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "regionSelected",
+        })
+      );
+    });
+
+    it("should notify user when selection is too small", async () => {
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      // Start selection
+      overlay.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 100,
+          clientY: 100,
+          bubbles: true,
+        })
+      );
+
+      // End with tiny selection (< 10px)
+      document.dispatchEvent(
+        new MouseEvent("mouseup", {
+          clientX: 105,
+          clientY: 105,
+          bubbles: true,
+        })
+      );
+
+      // Should send a message to notify user about the cancelled selection
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "regionCancelled",
+          reason: "tooSmall",
+        })
+      );
     });
 
     it("should clean up overlay after selection", async () => {
