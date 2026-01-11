@@ -44,6 +44,7 @@ cleanupStaleData();
 chrome.runtime.onMessage.addListener((message, sender, _sendResponse) => {
   if (message.type === "regionSelected") {
     handleRegionSelection(sender.tab, message.rect);
+    return true; // Keep channel open for async response
   } else if (message.type === "regionCancelled") {
     handleRegionCancelled(message.reason);
   }
