@@ -15,7 +15,7 @@
  * @module popup-logic
  */
 
-import { MAX_PIXELS, MAX_DIMENSION, dataUrlToBlob } from "../src/utils.js";
+import { MAX_PIXELS, MAX_DIMENSION, dataUrlToBlob, scaleImageIfNeeded } from "../src/utils.js";
 
 /**
  * Initialize the popup logic.
@@ -315,54 +315,6 @@ export function init(elements) {
       console.error("Clipboard error:", err);
       return false;
     }
-  }
-
-  /**
-   * Scale down the image if it exceeds size limits to improve OCR performance and avoid crashes.
-   */
-  function scaleImageIfNeeded(dataUrl) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const { width, height } = img;
-        const pixels = width * height;
-
-        // Check if scaling is needed based on pixel count or dimensions
-        if (pixels <= MAX_PIXELS && width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
-          resolve({ dataUrl, scaled: false });
-          return;
-        }
-
-        // Calculate scale factor to fit within limits
-        let scale = 1;
-        if (pixels > MAX_PIXELS) {
-          scale = Math.sqrt(MAX_PIXELS / pixels);
-        }
-        if (width * scale > MAX_DIMENSION) {
-          scale = MAX_DIMENSION / width;
-        }
-        if (height * scale > MAX_DIMENSION) {
-          scale = MAX_DIMENSION / height;
-        }
-
-        const newWidth = Math.floor(width * scale);
-        const newHeight = Math.floor(height * scale);
-
-        const canvas = document.createElement("canvas");
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          resolve({ dataUrl, scaled: false });
-          return;
-        }
-        ctx.drawImage(img, 0, 0, newWidth, newHeight);
-
-        resolve({ dataUrl: canvas.toDataURL("image/png"), scaled: true });
-      };
-      img.onerror = () => resolve({ dataUrl, scaled: false });
-      img.src = dataUrl;
-    });
   }
 
   /**
