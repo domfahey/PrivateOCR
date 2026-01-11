@@ -218,6 +218,74 @@ describe("Background Service Worker", () => {
     });
   });
 
+  describe("MV3 Service Worker Lifecycle", () => {
+    it("should return true from message listener for async handlers", async () => {
+      vi.resetModules();
+
+      // Capture the return value of the message listener
+      let listenerReturnValue;
+      chrome.runtime.onMessage.addListener = vi.fn((handler) => {
+        messageHandler = handler;
+        // When we call the handler, capture its return value
+      });
+
+      await import("../src/background.js");
+
+      const mockTab = { id: 1, windowId: 1 };
+      const mockRect = { x: 0, y: 0, width: 100, height: 100 };
+
+      // The listener should return true to indicate async response
+      listenerReturnValue = messageHandler(
+        { type: "regionSelected", rect: mockRect },
+        { tab: mockTab },
+        vi.fn()
+      );
+
+      // MV3 requires returning true for async message handlers to keep the channel open
+      expect(listenerReturnValue).toBe(true);
+    });
+  });
+
+  describe("Sender Validation", () => {
+    it("should handle missing sender.tab gracefully", async () => {
+      vi.resetModules();
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      await import("../src/background.js");
+
+      // Send message with no tab (e.g., from popup or other context)
+      messageHandler(
+        { type: "regionSelected", rect: { x: 0, y: 0, width: 100, height: 100 } },
+        {}, // No tab property
+        vi.fn()
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Should not throw, should log error or show notification
+      expect(chrome.tabs.captureVisibleTab).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it("should handle undefined sender gracefully", async () => {
+      vi.resetModules();
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      await import("../src/background.js");
+
+      // This should not throw
+      expect(() => {
+        messageHandler(
+          { type: "regionSelected", rect: { x: 0, y: 0, width: 100, height: 100 } },
+          undefined,
+          vi.fn()
+        );
+      }).not.toThrow();
+
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe("Region Cancellation", () => {
     it("should show notification when Escape cancels selection", async () => {
       await import("../src/background.js");

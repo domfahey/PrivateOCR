@@ -43,10 +43,24 @@ cleanupStaleData();
  */
 chrome.runtime.onMessage.addListener((message, sender, _sendResponse) => {
   if (message.type === "regionSelected") {
+    // Validate sender.tab exists before processing
+    if (!sender?.tab) {
+      console.error("Region selection received without valid tab context");
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon48.png",
+        title: "Capture Error",
+        message: "Could not identify the source tab. Please try again.",
+      });
+      return false;
+    }
     handleRegionSelection(sender.tab, message.rect);
+    // Return true to indicate async response (keeps message channel open for MV3)
+    return true;
   } else if (message.type === "regionCancelled") {
     handleRegionCancelled(message.reason);
   }
+  return false;
 });
 
 /**

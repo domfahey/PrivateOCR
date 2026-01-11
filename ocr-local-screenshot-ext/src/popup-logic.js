@@ -58,7 +58,7 @@ export function init(elements) {
   let isPreviewVisible = true;
   let imgScale = 1.0;
   let isImgFit = true;
-  let textSize = 14;
+  let textSize = 15; // Must match CSS .md-text-field font-size
   let copyButtonTimeoutId = null; // Track timeout to prevent race condition
   let copyButtonOriginalHtml = null; // Store original HTML to restore after timeout
 

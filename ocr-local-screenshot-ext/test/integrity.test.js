@@ -73,6 +73,42 @@ describe("Project Integrity", () => {
     });
   });
 
+  describe("Version Consistency", () => {
+    it("should have matching version in manifest.json and settings.html", () => {
+      const manifestContent = fs.readFileSync(MANIFEST_PATH, "utf-8");
+      const manifest = JSON.parse(manifestContent);
+      const manifestVersion = manifest.version;
+
+      const settingsHtmlPath = path.join(PROJECT_ROOT, "src", "settings.html");
+      const settingsContent = fs.readFileSync(settingsHtmlPath, "utf-8");
+
+      // Extract version from settings.html (e.g., "v0.4.0" or "v0.5.0")
+      const versionMatch = settingsContent.match(/v(\d+\.\d+\.\d+)/);
+      expect(versionMatch, "Version not found in settings.html").not.toBeNull();
+
+      const settingsVersion = versionMatch[1];
+      expect(settingsVersion, "Version mismatch between manifest.json and settings.html").toBe(
+        manifestVersion
+      );
+    });
+  });
+
+  describe("Security", () => {
+    it("should have rel=\"noopener noreferrer\" on external links with target=\"_blank\"", () => {
+      const settingsHtmlPath = path.join(PROJECT_ROOT, "src", "settings.html");
+      const settingsContent = fs.readFileSync(settingsHtmlPath, "utf-8");
+
+      // Find all links with target="_blank"
+      const blankTargetLinks = settingsContent.match(/<a[^>]*target="_blank"[^>]*>/g) || [];
+
+      for (const link of blankTargetLinks) {
+        // Each link should have rel="noopener" or rel="noopener noreferrer"
+        const hasNoopener = /rel="[^"]*noopener[^"]*"/.test(link);
+        expect(hasNoopener, `External link missing rel="noopener": ${link}`).toBe(true);
+      }
+    });
+  });
+
   describe("CSS and HTML Consistency", () => {
     it("should have CSS selectors that match HTML element IDs", () => {
       const cssContent = fs.readFileSync(STYLES_PATH, "utf-8");

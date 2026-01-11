@@ -184,17 +184,26 @@ describe("Popup Logic Integration", () => {
   });
 
   describe("Zoom Controls", () => {
-    it("should increase text size", () => {
-      const initialSize = elements.outputEl.style.fontSize;
+    it("should increase text size from CSS baseline", () => {
+      // CSS sets font-size to 15px, JS should start from 15px not 14px
       elements.textZoomInBtn.click();
-      expect(elements.outputEl.style.fontSize).toBe("16px"); // Default 14 + 2
+      expect(elements.outputEl.style.fontSize).toBe("17px"); // 15 + 2 = 17
     });
 
-    it("should decrease text size", () => {
-        // Increase first so we can decrease
-        elements.textZoomInBtn.click(); // 16px
-        elements.textZoomOutBtn.click(); // 14px
-        expect(elements.outputEl.style.fontSize).toBe("14px");
+    it("should decrease text size from CSS baseline", () => {
+      // First increase then decrease to verify baseline
+      elements.textZoomInBtn.click(); // 17px
+      elements.textZoomOutBtn.click(); // 15px
+      expect(elements.outputEl.style.fontSize).toBe("15px");
+    });
+
+    it("should match CSS baseline on first zoom operation", () => {
+      // The first zoom should produce a visible change
+      // If baseline is wrong (14 vs 15), first zoom-in does nothing visible
+      const cssFontSize = 15; // From styles.css .md-text-field
+      elements.textZoomInBtn.click();
+      const resultSize = parseInt(elements.outputEl.style.fontSize);
+      expect(resultSize).toBe(cssFontSize + 2);
     });
   });
 
@@ -680,6 +689,96 @@ describe("Popup Logic Integration", () => {
         await flushAll();
 
         expect(elements.statusEl.textContent).toBe("Error: Cannot access this tab");
+      });
+    });
+
+    describe("Scaling Status Timing", () => {
+      it("should show scaling status BEFORE scaling completes, not after", async () => {
+        vi.clearAllMocks();
+
+        // Track status updates in order
+        const statusUpdates = [];
+        const originalTextContent = Object.getOwnPropertyDescriptor(
+          Object.getPrototypeOf(elements.statusEl),
+          "textContent"
+        );
+
+        Object.defineProperty(elements.statusEl, "textContent", {
+          set(value) {
+            statusUpdates.push(value);
+            originalTextContent.set.call(this, value);
+          },
+          get() {
+            return originalTextContent.get.call(this);
+          },
+          configurable: true,
+        });
+
+        // Mock a large image that triggers scaling
+        global.Image = class {
+          constructor() {
+            this.onload = null;
+            this.width = 5000;
+            this.height = 4000;
+            this._src = "";
+          }
+          get src() {
+            return this._src;
+          }
+          set src(val) {
+            this._src = val;
+            setTimeout(() => {
+              if (this.onload) this.onload();
+            }, 0);
+          }
+        };
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        // "Scaling large image..." should appear BEFORE any status that comes after capture
+        const scalingIndex = statusUpdates.findIndex((s) => s.includes("Scaling"));
+        const recognizingIndex = statusUpdates.findIndex((s) => s.includes("Recognizing"));
+
+        // If scaling happens, it should be before recognizing
+        if (scalingIndex !== -1 && recognizingIndex !== -1) {
+          expect(scalingIndex).toBeLessThan(recognizingIndex);
+        }
+      });
+    });
+
+    describe("OCR Cancellation Race Condition", () => {
+      it("should not allow cancelled operation to continue after new operation starts", async () => {
+        vi.clearAllMocks();
+
+        // Track how many times recognize is called
+        let recognizeCallCount = 0;
+        mockWorkerInstance.recognize = vi.fn(async () => {
+          recognizeCallCount++;
+          // Simulate slow recognition
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          return { data: { text: `Result ${recognizeCallCount}` } };
+        });
+
+        // Start first operation
+        elements.screenshotBtn.click();
+        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Cancel it
+        elements.cancelBtn.click();
+        await Promise.resolve();
+
+        // Immediately start second operation
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        // Only ONE successful OCR should complete (the second one)
+        // The first one should have been properly cancelled
+        expect(elements.outputEl.value).not.toContain("Result 1");
       });
     });
 

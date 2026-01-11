@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-11
+
+### Added
+
+- **Extension Icons**: Added proper icon assets (16px, 48px, 128px) for toolbar, notifications, and Chrome Web Store.
+- **Settings Page**: Added dedicated settings page accessible via gear icon in popup header.
+- **Zoom Controls**: Added image zoom (+/−/Fit) and text zoom (A+/A−) controls in popup toolbar.
+- **Split View Toggle**: Added button to show/hide screenshot preview panel.
+- **User Notifications**: Added Chrome notifications for region selection cancellation and capture errors.
+- **Stale Data Cleanup**: Background service worker now cleans up pending region data older than 60 seconds on startup.
+
+### Fixed
+
+- **Region Popup Self-Capture**: Region mode popup now correctly captures the original tab instead of itself by storing and using the source window ID.
+- **Progress Bar**: Progress bar now correctly hides for idle statuses (Ready, No text, etc.) instead of staying indeterminate.
+- **Worker Recovery**: Tesseract worker initialization now properly resets on failure, allowing retry instead of permanent block.
+- **Region Scaling**: Region captures now apply `scaleImageIfNeeded` like full-page captures to prevent memory issues with large selections.
+- **CSS Selectors**: Fixed `#previewImage` CSS selector to match actual HTML element ID.
+- **Popup Window Size**: Region mode popup now opens at 800x600 to accommodate UI minimum dimensions (780x580).
+- **Preview Container**: Added `position: relative` to `.preview-container` so toolbar positions correctly.
+- **Copy Button Race**: Fixed race condition where rapid clicks could leave button stuck on "Copied!".
+- **Escape Cancellation**: Pressing Escape during region selection now shows notification and properly closes overlay.
+- **Viewport Clamping**: Selection size validation now happens after viewport clamping to prevent zero-sized crops.
+- **Processing State**: `isProcessing` flag now set immediately on capture start, preventing overlapping operations.
+- **Cancel Button Visibility**: Cancel button now visible immediately when capture starts, not just during OCR.
+
+### Changed
+
+- **UI Design**: Modernized popup with "Secure Vault" aesthetic featuring dark theme, improved typography, and refined layout.
+- **Test Coverage**: Improved test coverage from 86% to 90% with comprehensive tests for all bug fixes.
+
 ## [0.4.0] - 2025-11-28
 
 ### Changed
