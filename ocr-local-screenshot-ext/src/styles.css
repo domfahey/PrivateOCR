@@ -177,7 +177,9 @@ main {
   max-height: 100%;
   object-fit: contain;
   transform-origin: center center;
-  transition: width 0.2s ease, height 0.2s ease;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease;
 }
 
 .empty-state {

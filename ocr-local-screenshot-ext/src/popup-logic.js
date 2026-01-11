@@ -37,7 +37,7 @@ export function init(elements) {
   let isProcessing = false;
   let isCancelled = false;
   let currentImageDataUrl = null;
-  
+
   // UI State
   let isPreviewVisible = true;
   let imgScale = 1.0;
@@ -45,7 +45,8 @@ export function init(elements) {
   let textSize = 14;
 
   function updatePreviewVisibility() {
-    if (isPreviewVisible) { // Always allow toggle, even if empty (shows placeholder)
+    if (isPreviewVisible) {
+      // Always allow toggle, even if empty (shows placeholder)
       contentArea.classList.add("split-view");
       if (toggleImageBtn) toggleImageBtn.classList.add("active");
     } else {
@@ -56,12 +57,12 @@ export function init(elements) {
 
   function updatePreview(dataUrl) {
     currentImageDataUrl = dataUrl;
-    
+
     if (dataUrl) {
       previewImage.src = dataUrl;
       previewImage.style.display = "block";
       if (emptyImageState) emptyImageState.style.display = "none";
-      
+
       // Reset zoom on new image
       isImgFit = true;
       imgScale = 1.0;
@@ -71,14 +72,14 @@ export function init(elements) {
       previewImage.src = "";
       if (emptyImageState) emptyImageState.style.display = "flex";
     }
-    
+
     // Force visibility update to show split view if active
     updatePreviewVisibility();
   }
 
   function applyImageZoom() {
     if (!currentImageDataUrl) return;
-    
+
     if (isImgFit) {
       previewImage.style.maxWidth = "100%";
       previewImage.style.width = "auto";
@@ -540,7 +541,7 @@ export function init(elements) {
     const copied = await copyToClipboard(text);
     if (copied) {
       updateStatus("Copied to clipboard");
-      
+
       // Visual feedback
       const originalHtml = copyBtn.innerHTML;
       copyBtn.innerHTML = `
@@ -551,7 +552,7 @@ export function init(elements) {
         </span>
         <span>Copied!</span>
       `;
-      
+
       setTimeout(() => {
         copyBtn.innerHTML = originalHtml;
       }, 2000);
