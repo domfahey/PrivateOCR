@@ -4,6 +4,7 @@ import path from "path";
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const VENDOR_DIR = path.join(PROJECT_ROOT, "vendor", "tesseract");
+const ICONS_DIR = path.join(PROJECT_ROOT, "icons");
 const MANIFEST_PATH = path.join(PROJECT_ROOT, "manifest.json");
 const STYLES_PATH = path.join(PROJECT_ROOT, "src", "styles.css");
 const POPUP_HTML_PATH = path.join(PROJECT_ROOT, "src", "popup.html");
@@ -32,6 +33,26 @@ describe("Project Integrity", () => {
       const filePath = path.join(VENDOR_DIR, filename);
       const exists = fs.existsSync(filePath);
       expect(exists, `Missing required vendor file: ${filename}`).toBe(true);
+    });
+  });
+
+  describe("Icon Files", () => {
+    const requiredIcons = ["icon16.png", "icon48.png", "icon128.png"];
+
+    it.each(requiredIcons)("should have %s present", (filename) => {
+      const filePath = path.join(ICONS_DIR, filename);
+      const exists = fs.existsSync(filePath);
+      expect(exists, `Missing required icon: ${filename}`).toBe(true);
+    });
+
+    it("should have icons defined in manifest.json", () => {
+      const manifestContent = fs.readFileSync(MANIFEST_PATH, "utf-8");
+      const manifest = JSON.parse(manifestContent);
+
+      expect(manifest.icons).toBeDefined();
+      expect(manifest.icons["16"]).toBe("icons/icon16.png");
+      expect(manifest.icons["48"]).toBe("icons/icon48.png");
+      expect(manifest.icons["128"]).toBe("icons/icon128.png");
     });
   });
 

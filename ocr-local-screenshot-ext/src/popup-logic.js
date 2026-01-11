@@ -650,7 +650,12 @@ export function init(elements) {
         // Retrieve the captured data stored by the background script
         const result = await chrome.storage.local.get("pendingRegionOcr");
         if (result.pendingRegionOcr) {
-          const { dataUrl, rect, timestamp, sourceWindowId: storedWindowId } = result.pendingRegionOcr;
+          const {
+            dataUrl,
+            rect,
+            timestamp,
+            sourceWindowId: storedWindowId,
+          } = result.pendingRegionOcr;
           // Store source window ID for future captures in this popup
           sourceWindowId = storedWindowId;
           // Clean up storage immediately
