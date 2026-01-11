@@ -37,17 +37,21 @@ const createChromeMock = () => ({
   },
 });
 
-// Mock Tesseract.js (v5 API)
+// Mock Tesseract.js (v7 API)
 const createTesseractMock = () => ({
   createWorker: vi.fn().mockResolvedValue({
     recognize: vi.fn().mockResolvedValue({
       data: { text: "Mock recognized text" },
     }),
     terminate: vi.fn().mockResolvedValue(undefined),
-    load: vi.fn().mockResolvedValue(undefined),
-    loadLanguage: vi.fn().mockResolvedValue(undefined),
-    initialize: vi.fn().mockResolvedValue(undefined),
   }),
+  // v7 OEM constants
+  OEM: {
+    TESSERACT_ONLY: 0,
+    LSTM_ONLY: 1,
+    TESSERACT_LSTM_COMBINED: 2,
+    DEFAULT: 3,
+  },
 });
 
 // Set up global mocks before each test
