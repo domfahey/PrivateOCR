@@ -49,14 +49,14 @@ export function init(elements) {
   let tesseractWorkerPromise = null;
   let currentTesseractWorker = null;
   let isProcessing = false;
-  let isCancelled = false;
   let currentImageDataUrl = null;
   let sourceWindowId = null; // Original window ID when in region mode
   let isRegionModePopup = false; // True if opened as region mode popup
+  let currentOperationId = 0; // Unique ID for each OCR operation to handle cancellation
 
   // UI State
   let isPreviewVisible = true;
-  let textSize = 15;
+  let imgScale = 1.0;
   let isImgFit = true;
   let textSize = 14;
   let copyButtonTimeoutId = null; // Track timeout to prevent race condition
@@ -232,18 +232,17 @@ export function init(elements) {
         progressIndicator.style.width = "0%";
       }
     }
-    console.log(statusMessage);
+    console.log(msg);
   }
 
   /**
    * Initialize or retrieve the Tesseract worker.
    * Handles lazy loading and configuration.
+   * @param {number} operationId - Unique ID for this operation to check for cancellation
    * @returns {Promise<Tesseract.Worker>}
    */
-  function getWorker() {
+  function getWorker(operationId) {
     if (tesseractWorkerPromise) return tesseractWorkerPromise;
-
-    isCancelled = false;
 
     // Tesseract.js v7 API: createWorker returns a Promise<Worker>
     // It handles load, loadLanguage, and initialize internally
@@ -266,7 +265,8 @@ export function init(elements) {
           }
         },
       });
-      if (isCancelled) {
+      // Check if this specific operation was cancelled
+      if (currentOperationId !== operationId) {
         await worker.terminate();
         throw new Error("Cancelled");
       }
@@ -275,8 +275,8 @@ export function init(elements) {
       return worker;
     })().catch((err) => {
       // Reset cached promise on failure so user can retry
-      workerPromise = null;
-      currentWorker = null;
+      tesseractWorkerPromise = null;
+      currentTesseractWorker = null;
       throw err;
     });
 
@@ -288,7 +288,8 @@ export function init(elements) {
    * Terminates the worker to stop processing immediately.
    */
   async function cancelOcr() {
-    isCancelled = true;
+    // Increment operation ID to invalidate any pending operations
+    currentOperationId++;
 
     if (currentTesseractWorker) {
       try {
@@ -307,12 +308,20 @@ export function init(elements) {
    * Execute OCR on a file.
    * Manages the UI state and worker lifecycle during recognition.
    */
-  async function runOcrOnFile(screenshotFile) {
+  async function runOcrOnFile(screenshotFile, operationId) {
     try {
       setProcessing(true);
-      const worker = await getWorker();
+      const worker = await getWorker(operationId);
+      // Check again if operation was cancelled while getting worker
+      if (currentOperationId !== operationId) {
+        throw new Error("Cancelled");
+      }
       updateStatus("Recognizing...");
-      const { data } = await worker.recognize(file);
+      const { data } = await worker.recognize(screenshotFile);
+      // Final check before displaying results
+      if (currentOperationId !== operationId) {
+        throw new Error("Cancelled");
+      }
       const text = data.text || "";
       outputEl.value = text;
 
@@ -323,7 +332,7 @@ export function init(elements) {
         if (copied) {
           updateStatus(`Done - ${wordCount} words, ${charCount} chars (copied to clipboard)`);
         } else {
-          updateStatus(`Done - ${wordCount} words, ${characterCount} chars`);
+          updateStatus(`Done - ${wordCount} words, ${charCount} chars`);
         }
       } else {
         updateStatus("Done - no text found");
@@ -358,7 +367,7 @@ export function init(elements) {
       format: "png",
     });
 
-    const { dataUrl: processedDataUrl, scaled } = await scaleImageIfNeeded(screenshotDataUrl);
+    const { dataUrl: processedDataUrl, scaled } = await scaleImageIfNeeded(dataUrl);
     if (scaled) {
       updateStatus("Scaling large image...");
     }
@@ -404,14 +413,16 @@ export function init(elements) {
     if (isProcessing) return;
     // Set processing immediately to prevent double-clicks and show cancel button
     setProcessing(true);
+    // Increment operation ID for this new operation
+    const operationId = ++currentOperationId;
     try {
       outputEl.value = "";
       updateStatus("Capturing screenshot...");
       const { file: screenshotFile, dataUrl } = await captureCurrentTabAsFile();
       updatePreview(dataUrl);
-      await runOcrOnFile(screenshotFile);
+      await runOcrOnFile(screenshotFile, operationId);
     } catch (error) {
-      if (isCancelled || (error && error.message === "Cancelled")) {
+      if (currentOperationId !== operationId || (error && error.message === "Cancelled")) {
         updateStatus("Cancelled");
       } else {
         console.error(error);
@@ -469,10 +480,10 @@ export function init(elements) {
     }
   }
 
-  async function handleRegionCapture(screenshotDataUrl, selectionRect) {
+  async function handleRegionCapture(screenshotDataUrl, selectionRect, operationId) {
     try {
       updateStatus("Cropping region...");
-      const { dataUrl: croppedDataUrl } = await cropImageToRegion(dataUrl, rect);
+      const { dataUrl: croppedDataUrl } = await cropImageToRegion(screenshotDataUrl, selectionRect);
 
       // Scale down if the cropped region is too large
       const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(croppedDataUrl);
@@ -483,13 +494,13 @@ export function init(elements) {
       updatePreview(processedUrl);
       const blob = dataUrlToBlob(processedUrl);
       const file = new File([blob], "region.png", { type: blob.type });
-      await runOcrOnFile(file);
+      await runOcrOnFile(file, operationId);
     } catch (err) {
-      if (isCancelled || (err && err.message === "Cancelled")) {
+      if (currentOperationId !== operationId || (err && err.message === "Cancelled")) {
         updateStatus("Cancelled");
       } else {
-        console.error(error);
-        updateStatus("Error: " + (error && error.message ? error.message : String(error)));
+        console.error(err);
+        updateStatus("Error: " + (err && err.message ? err.message : String(err)));
       }
       setProcessing(false);
     }
@@ -575,8 +586,10 @@ export function init(elements) {
           // Clean up storage immediately
           await chrome.storage.local.remove("pendingRegionOcr");
           // Only process if data is fresh (< 1 minute) to avoid processing stale data
-          if (Date.now() - captureTimestamp < 60000) {
-            await handleRegionCapture(screenshotDataUrl, selectionRect);
+          if (Date.now() - timestamp < 60000) {
+            // Increment operation ID for this new operation
+            const operationId = ++currentOperationId;
+            await handleRegionCapture(dataUrl, rect, operationId);
           } else {
             updateStatus("Region data expired, please try again");
           }
