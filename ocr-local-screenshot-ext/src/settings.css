@@ -1,6 +1,16 @@
+/*
+ * Settings Page Styles
+ * Inherits design tokens from styles.css
+ */
+
+/* Override body styles for settings page */
+html {
+  overflow-y: auto; /* Fix scrolling on settings page */
+}
+
 body {
-  background-color: #f5f7fa;
-  display: block; /* Reset flex from styles.css body */
+  background-color: var(--color-background);
+  display: block;
   min-width: auto;
   min-height: auto;
   height: auto;
@@ -8,8 +18,8 @@ body {
 }
 
 .settings-header {
-  background-color: #ffffff;
-  border-bottom: 1px solid var(--md-sys-color-outline);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
   padding: 16px 0;
   margin-bottom: 32px;
 }
@@ -26,14 +36,15 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--md-sys-color-primary);
+  color: var(--color-accent);
 }
 
 .logo-area h1 {
   margin: 0;
   font-size: 24px;
-  font-weight: 500;
-  color: var(--md-sys-color-on-surface);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
 }
 
 .settings-container {
@@ -46,20 +57,20 @@ body {
 }
 
 .settings-card {
-  background-color: #ffffff;
-  border: 1px solid var(--md-sys-color-outline);
-  border-radius: 8px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .section-title {
   margin: 0 0 24px 0;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--md-sys-color-on-surface-variant);
-  letter-spacing: 1px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
 }
 
 .setting-row {
@@ -67,7 +78,7 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .setting-row:last-child {
@@ -85,15 +96,15 @@ body {
 }
 
 .setting-label {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
-  color: var(--md-sys-color-on-surface);
+  color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .setting-description {
   font-size: 14px;
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -103,41 +114,57 @@ body {
   align-items: center;
 }
 
-/* Controls */
+/* Select control */
 .md-select {
   padding: 8px 36px 8px 12px;
-  border: 1px solid var(--md-sys-color-outline);
-  border-radius: 4px;
-  font-family: var(--md-font-family);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
   font-size: 14px;
-  color: var(--md-sys-color-on-surface);
-  background-color: #fff;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23333%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
   background-size: 16px;
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
+.md-select:not(:disabled) {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.md-select:not(:disabled):hover {
+  border-color: var(--color-primary-light);
+}
+
+.md-select:not(:disabled):focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Badge */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
-  border-radius: 16px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .badge.success {
-  background-color: #e6f4ea;
-  color: #1e8e3e;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #059669;
 }
 
-/* Reuse button styles from styles.css but ensure context */
+/* Button overrides for settings page */
 .md-btn-tonal {
-  text-decoration: none; /* Reset for anchor tag */
+  text-decoration: none;
   display: inline-flex;
   height: 36px;
 }

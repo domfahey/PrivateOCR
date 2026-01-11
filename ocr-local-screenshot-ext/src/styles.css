@@ -1,29 +1,73 @@
+/*
+ * PrivateOCR Styles
+ * Design: "Secure Vault" aesthetic - clean, confident, utilitarian
+ * with subtle hints of security/protection
+ */
+
+/* ============================================
+   Design Tokens
+   ============================================ */
 :root {
-  /* Material Design 3 (approximate) Color Tokens */
-  --md-sys-color-primary: #6750a4;
-  --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #eaddff;
-  --md-sys-color-on-primary-container: #21005d;
+  /* Primary: Deep slate conveys security & trust */
+  --color-primary: #1e293b;
+  --color-primary-hover: #334155;
+  --color-primary-light: #475569;
 
-  --md-sys-color-secondary-container: #e8def8;
-  --md-sys-color-on-secondary-container: #1d192b;
+  /* Accent: Teal for actions - distinctive, not generic purple */
+  --color-accent: #0d9488;
+  --color-accent-hover: #0f766e;
+  --color-accent-light: #14b8a6;
+  --color-accent-subtle: rgba(13, 148, 136, 0.1);
 
-  --md-sys-color-background: #fffbfe;
-  --md-sys-color-surface: #fffbfe;
-  --md-sys-color-on-surface: #1c1b1f;
-  --md-sys-color-on-surface-variant: #49454f;
+  /* Surface hierarchy */
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f1f5f9;
+  --color-surface-hover: #e2e8f0;
 
-  --md-sys-color-outline: #79747e;
-  --md-sys-color-outline-focus: #6750a4;
+  /* Text hierarchy */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+  --color-text-on-primary: #ffffff;
+  --color-text-on-accent: #ffffff;
 
-  --md-sys-color-error: #b3261e;
-  --md-sys-color-on-error: #ffffff;
+  /* Borders & dividers */
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-focus-ring: var(--color-accent);
 
-  --md-elevation-level-1: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-  --md-elevation-level-2: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+  /* Status colors */
+  --color-ready: #10b981;
+  --color-processing: #f59e0b;
+  --color-error: #ef4444;
+  --color-error-hover: rgba(239, 68, 68, 0.1);
 
-  --md-font-family: "Roboto", system-ui, -apple-system, sans-serif;
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  /* Typography */
+  --font-family: "DM Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Consolas", monospace;
+
+  /* Spacing */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
 }
+
+/* ============================================
+   Base Styles
+   ============================================ */
+/* Note: Using system fonts for privacy (no external requests) */
+/* DM Sans can be loaded via extension if desired */
 
 html {
   width: 100%;
@@ -38,190 +82,110 @@ body {
   height: 100vh;
   min-width: 780px;
   min-height: 580px;
-  font-family: var(--md-font-family);
-  background-color: var(--md-sys-color-background);
-  color: var(--md-sys-color-on-surface);
+  font-family: var(--font-family);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Top App Bar */
+/* ============================================
+   Top App Bar / Header
+   ============================================ */
 .top-app-bar {
-  height: 56px;
+  height: 60px;
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  background-color: var(--md-sys-color-surface);
-  color: var(--md-sys-color-on-surface);
-  flex-shrink: 0; /* Don't shrink header */
+  padding: 0 20px;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .app-bar-content {
   display: flex;
   align-items: center;
   flex-grow: 1;
+  gap: 12px;
 }
 
 .title {
   margin: 0;
-  font-size: 22px;
-  font-weight: 400;
-  line-height: 28px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
 }
 
-/* Icon Button for App Bar */
+.spacer {
+  flex-grow: 1;
+}
+
+/* ============================================
+   Icon Buttons
+   ============================================ */
 .md-btn-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
   background-color: transparent;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--md-sys-color-on-surface-variant);
-  transition: background-color 0.2s;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
 }
 
 .md-btn-icon:hover {
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 
-main {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex-grow: 1;
-  overflow: hidden; /* Allow content area to handle its own scrolling */
-  min-height: 0; /* Vital for nested flex scrolling */
+.md-btn-icon:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
-/* View Options */
-.view-options {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-}
-
-.content-area {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex-grow: 1;
-  min-height: 0; /* Fix for flex child overflow */
-}
-
-.content-area.split-view {
-  flex-direction: row;
-}
-
-.preview-container {
-  display: none; /* Hidden by default */
-  position: relative; /* Required for absolutely positioned .preview-toolbar */
-  flex: 1;
-  border: 1px solid var(--md-sys-color-outline);
-  border-radius: 4px;
-  overflow: hidden;
-  justify-content: center;
-  align-items: center;
-  background-color: #f5f5f5;
-}
-
-.content-area.split-view .preview-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.preview-toolbar {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  gap: 4px;
-  background-color: rgba(0, 0, 0, 0.6);
-  padding: 4px;
-  border-radius: 8px;
-  z-index: 10;
-  backdrop-filter: blur(4px);
-}
-
-.preview-toolbar .md-btn-icon {
-  color: #ffffff;
-  width: 28px;
-  height: 28px;
-  padding: 4px;
-}
-
-.preview-toolbar .md-btn-icon:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.image-scroll-wrapper {
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  /* Custom scrollbar for dark theme */
-  scrollbar-width: thin;
-  scrollbar-color: #5f6368 #202124;
-}
-
-#previewImage {
-  /* Default state is "fit" handled by JS or CSS classes */
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  transform-origin: center center;
-  transition:
-    width 0.2s ease,
-    height 0.2s ease;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--md-sys-color-outline);
-  gap: 12px;
-  height: 100%;
-  width: 100%;
-  user-select: none;
-}
-
-.empty-state svg {
-  opacity: 0.5;
-}
-
-.empty-state span {
-  font-size: 14px;
-  font-weight: 500;
-}
-
-/* Zoom Controls */
-.zoom-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Icon Button Small */
 .md-btn-icon.small {
-  width: 28px;
-  height: 28px;
-  padding: 4px;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
 }
 
-/* Buttons */
+.md-btn-icon.active {
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.md-btn-icon.active:hover {
+  background-color: rgba(13, 148, 136, 0.15);
+}
+
+/* ============================================
+   Main Content Area
+   ============================================ */
+main {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-grow: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ============================================
+   Action Buttons
+   ============================================ */
 .action-row {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
 .md-btn {
@@ -229,177 +193,449 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 40px;
-  border-radius: 20px;
+  gap: 10px;
+  height: 44px;
+  border-radius: var(--radius-lg);
   padding: 0 24px;
-  font-family: var(--md-font-family);
+  font-family: var(--font-family);
   font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   border: none;
   cursor: pointer;
-  transition:
-    box-shadow 0.2s,
-    background-color 0.2s;
+  transition: all var(--transition-base);
   flex: 1;
   overflow: hidden;
 }
 
+.md-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .md-btn:disabled {
-  opacity: 0.38;
+  opacity: 0.5;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
-/* Filled Button (Primary) */
+/* Primary Button - Filled */
 .md-btn-filled {
-  background-color: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+  box-shadow: var(--shadow-sm);
 }
+
 .md-btn-filled:hover:not(:disabled) {
-  box-shadow: var(--md-elevation-level-1);
-  background-image: linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08));
+  background-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
-/* Tonal Button (Secondary) */
+.md-btn-filled:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Secondary Button - Tonal/Outline */
 .md-btn-tonal {
-  background-color: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
-}
-.md-btn-tonal:hover:not(:disabled) {
-  box-shadow: var(--md-elevation-level-1);
-  background-image: linear-gradient(rgba(29, 25, 43, 0.08), rgba(29, 25, 43, 0.08));
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border: 2px solid var(--color-border-strong);
 }
 
-/* Text Button (Ghost) */
+.md-btn-tonal:hover:not(:disabled) {
+  background-color: var(--color-surface-raised);
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Text Button */
 .md-btn-text {
   background-color: transparent;
-  color: var(--md-sys-color-primary);
+  color: var(--color-accent);
   padding: 0 12px;
-  min-width: 64px;
-}
-.md-btn-text:hover:not(:disabled) {
-  background-color: rgba(103, 80, 164, 0.08);
-}
-.md-btn-text.error {
-  color: var(--md-sys-color-error);
-}
-.md-btn-text.error:hover:not(:disabled) {
-  background-color: rgba(179, 38, 30, 0.08);
+  min-width: auto;
+  flex: none;
 }
 
-/* Icons */
+.md-btn-text:hover:not(:disabled) {
+  background-color: var(--color-accent-subtle);
+}
+
+.md-btn-text.error {
+  color: var(--color-error);
+}
+
+.md-btn-text.error:hover:not(:disabled) {
+  background-color: var(--color-error-hover);
+}
+
+.md-btn-text.small {
+  height: 32px;
+  font-size: 13px;
+}
+
+/* Icons in buttons */
 .icon {
   display: flex;
   align-items: center;
 }
 
-/* Status & Progress */
+/* ============================================
+   Status & Progress
+   ============================================ */
 .status-container {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-height: 24px;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .status-text {
-  font-size: 12px;
-  color: var(--md-sys-color-on-surface-variant);
-  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
+/* Status indicator dot */
+.status-text::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-ready);
+  flex-shrink: 0;
+}
+
+/* Processing state */
+.status-text.processing::before {
+  background-color: var(--color-processing);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Progress bar */
 .progress-track {
   height: 4px;
-  background-color: var(--md-sys-color-secondary-container);
-  border-radius: 2px;
+  background-color: var(--color-surface-raised);
+  border-radius: var(--radius-full);
   overflow: hidden;
   width: 100%;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity var(--transition-base);
 }
+
 .progress-track.active {
   opacity: 1;
 }
 
 .progress-indicator {
   height: 100%;
-  background-color: var(--md-sys-color-primary);
+  background-color: var(--color-accent);
   width: 0%;
   transition: width 0.2s linear;
+  border-radius: var(--radius-full);
 }
 
 .progress-indicator.indeterminate {
-  width: 50%;
-  animation: indeterminate 1.5s infinite linear;
+  width: 40%;
+  animation: indeterminate 1.2s ease-in-out infinite;
 }
 
 @keyframes indeterminate {
   0% {
-    transform: translateX(-150%);
+    transform: translateX(-100%);
   }
   100% {
-    transform: translateX(250%);
+    transform: translateX(350%);
   }
 }
 
-/* Text Field (Outlined variant) */
+/* ============================================
+   Content Area - Split View
+   ============================================ */
+.content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-grow: 1;
+  min-height: 0;
+}
+
+.content-area.split-view {
+  flex-direction: row;
+}
+
+/* ============================================
+   Image Preview Container
+   ============================================ */
+.preview-container {
+  display: none;
+  position: relative;
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-surface);
+}
+
+.content-area.split-view .preview-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Preview Toolbar - Floating */
+.preview-toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+  background-color: rgba(15, 23, 42, 0.85);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-lg);
+}
+
+.preview-toolbar .md-btn-icon {
+  color: rgba(255, 255, 255, 0.9);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+}
+
+.preview-toolbar .md-btn-icon:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* Image scroll wrapper */
+.image-scroll-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-surface-raised);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+.image-scroll-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.image-scroll-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.image-scroll-wrapper::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+/* Preview image */
+#previewImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: center center;
+  transition:
+    width var(--transition-base),
+    height var(--transition-base);
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  gap: 16px;
+  height: 100%;
+  width: 100%;
+  user-select: none;
+  padding: 32px;
+  text-align: center;
+}
+
+.empty-state svg {
+  opacity: 0.4;
+  color: var(--color-text-muted);
+}
+
+.empty-state span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* Privacy hint in empty state */
+.empty-state::after {
+  content: "All processing stays local";
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+/* ============================================
+   Text Field / Editor Area
+   ============================================ */
 .text-field-wrapper {
   position: relative;
-  border-radius: 4px;
-  background-color: var(--md-sys-color-surface);
-  /* margin-top: 8px;  Removed as gap handles spacing in flex container */
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  overflow: hidden;
 }
 
+/* Editor toolbar */
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+/* Zoom controls */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Text area */
 .md-text-field {
   width: 100%;
-  /* height: 350px; Removed fixed height */
   flex-grow: 1;
   padding: 16px;
-  border: 1px solid var(--md-sys-color-outline);
-  border-radius: 4px;
+  border: none;
   background-color: transparent;
-  font-family: var(--md-font-family);
-  font-size: 16px;
-  color: var(--md-sys-color-on-surface);
+  font-family: var(--font-family);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
   resize: none;
   box-sizing: border-box;
   outline: none;
-  transition: border-color 0.2s;
+}
+
+.md-text-field::placeholder {
+  color: var(--color-text-muted);
 }
 
 .md-text-field:focus {
-  border-color: var(--md-sys-color-primary);
-  border-width: 2px;
-  padding: 15px; /* adjust for border width increase */
+  background-color: var(--color-surface);
 }
 
-/* Floating Label */
-.md-floating-label {
-  position: absolute;
-  left: 16px;
-  top: 16px;
-  padding: 0 4px;
-  background-color: var(--md-sys-color-surface);
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: 16px;
-  pointer-events: none;
-  transition: 0.2s ease all;
+/* ============================================
+   View Options
+   ============================================ */
+.view-options {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
 }
 
-.md-text-field:focus ~ .md-floating-label,
-.md-text-field:not(:placeholder-shown) ~ .md-floating-label {
-  top: -8px;
-  font-size: 12px;
-  color: var(--md-sys-color-primary);
-}
-
-/* Footer */
+/* ============================================
+   Footer Actions
+   ============================================ */
 .footer-actions {
   display: flex;
-  justify-content: flex-start; /* Aligned to start */
+  justify-content: flex-start;
   gap: 8px;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+.hidden {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================
+   Focus Styles (Accessibility)
+   ============================================ */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ============================================
+   Selection Styles
+   ============================================ */
+::selection {
+  background-color: var(--color-accent-subtle);
+  color: var(--color-text-primary);
+}
+
+/* ============================================
+   Scrollbar Styles (Global)
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-muted);
 }
