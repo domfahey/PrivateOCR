@@ -794,5 +794,37 @@ describe("Popup Logic Integration", () => {
         expect(elements.statusEl.textContent).toBe("Could not copy to clipboard");
       });
     });
+
+    describe("Image Load Error Handling", () => {
+      it("should show error when captured image fails to load", async () => {
+        vi.clearAllMocks();
+
+        // Mock captureVisibleTab to return an invalid/corrupted data URL
+        chrome.tabs.captureVisibleTab = vi.fn().mockResolvedValue("data:image/png;base64,INVALID");
+
+        // Mock Image to simulate load failure
+        const originalImage = global.Image;
+        global.Image = class MockImage {
+          constructor() {
+            setTimeout(() => {
+              if (this.onerror) this.onerror(new Error("Failed to decode image"));
+            }, 0);
+          }
+          set src(_value) {
+            // Trigger error on next tick
+          }
+        };
+
+        init(elements);
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        // Restore original Image
+        global.Image = originalImage;
+
+        // Should show an error status, not continue silently
+        expect(elements.statusEl.textContent).toContain("Error");
+      });
+    });
   });
 });

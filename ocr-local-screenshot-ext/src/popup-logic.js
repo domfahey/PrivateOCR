@@ -57,7 +57,7 @@ export function init(elements) {
 
   // UI State
   let isPreviewVisible = true;
-  let textSize = 15;
+  let imgScale = 1.0;
   let isImgFit = true;
   let textSize = 15; // Must match CSS .md-text-field font-size
   let copyButtonTimeoutId = null; // Track timeout to prevent race condition
@@ -374,9 +374,9 @@ export function init(elements) {
 
     // Check if scaling is needed and show status BEFORE the expensive operation
     const img = new Image();
-    await new Promise((resolve) => {
+    await new Promise((resolve, reject) => {
       img.onload = resolve;
-      img.onerror = resolve;
+      img.onerror = () => reject(new Error("Failed to load captured image"));
       img.src = dataUrl;
     });
     const needsScaling =

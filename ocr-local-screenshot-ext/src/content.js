@@ -169,6 +169,9 @@
       })
       .catch((error) => {
         console.error("Failed to send region selection:", error);
+        // Alert user since they're waiting for popup that won't open
+        // This is a last resort when extension context is invalidated
+        window.alert("PrivateOCR: Failed to capture region. Please try again or reload the extension.");
       });
   }
 

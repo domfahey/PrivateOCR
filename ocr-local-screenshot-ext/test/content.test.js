@@ -325,6 +325,59 @@ describe("Content Script - Region Selection", () => {
     });
   });
 
+  describe("Message Send Failure Handling", () => {
+    it("should show alert when regionSelected message fails to send", async () => {
+      // Clean up from previous tests - use DOM methods instead of innerHTML
+      while (document.body.firstChild) {
+        document.body.removeChild(document.body.firstChild);
+      }
+      delete window.__ocrRegionSelectorActive;
+      vi.resetModules();
+
+      // Reset viewport dimensions (previous test may have changed them)
+      Object.defineProperty(window, "innerWidth", { value: 1024, writable: true });
+      Object.defineProperty(window, "innerHeight", { value: 768, writable: true });
+
+      // Mock sendMessage to reject BEFORE module import
+      chrome.runtime.sendMessage = vi.fn().mockRejectedValue(new Error("Extension context invalidated"));
+
+      // Mock window.alert
+      const alertMock = vi.fn();
+      window.alert = alertMock;
+
+      // Import after mocks are set up
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+      expect(overlay).not.toBeNull();
+
+      // Complete a valid selection
+      overlay.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 100,
+          clientY: 100,
+          bubbles: true,
+        })
+      );
+
+      document.dispatchEvent(
+        new MouseEvent("mouseup", {
+          clientX: 200,
+          clientY: 200,
+          bubbles: true,
+        })
+      );
+
+      // Wait for async error handling
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Should show alert to user when message fails
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("PrivateOCR")
+      );
+    });
+  });
+
   describe("Device Pixel Ratio Handling", () => {
     it("should account for devicePixelRatio in rect coordinates", async () => {
       // Mock devicePixelRatio and viewport dimensions
