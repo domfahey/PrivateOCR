@@ -57,6 +57,8 @@ export function init(elements) {
   let imgScale = 1.0;
   let isImgFit = true;
   let textSize = 14;
+  let copyButtonTimeoutId = null; // Track timeout to prevent race condition
+  let copyButtonOriginalHtml = null; // Store original HTML to restore after timeout
 
   function updatePreviewVisibility() {
     if (isPreviewVisible) {
@@ -240,7 +242,7 @@ export function init(elements) {
 
     isCancelled = false;
 
-    // Tesseract.js v5 API: createWorker returns a Promise<Worker>
+    // Tesseract.js v7 API: createWorker returns a Promise<Worker>
     // It handles load, loadLanguage, and initialize internally
     workerPromise = (async () => {
       updateStatus("Loading OCR engine...");
@@ -471,6 +473,8 @@ export function init(elements) {
 
   async function handleScreenshotClick() {
     if (isProcessing) return;
+    // Set processing immediately to prevent double-clicks and show cancel button
+    setProcessing(true);
     try {
       outputEl.value = "";
       updateStatus("Capturing screenshot...");
@@ -580,8 +584,19 @@ export function init(elements) {
     if (copied) {
       updateStatus("Copied to clipboard");
 
+      // Cancel any pending timeout to prevent race condition on rapid clicks
+      if (copyButtonTimeoutId) {
+        clearTimeout(copyButtonTimeoutId);
+        copyButtonTimeoutId = null;
+      }
+
+      // Store original HTML only once (before first click changes it)
+      if (!copyButtonOriginalHtml) {
+        copyButtonOriginalHtml = copyBtn.innerHTML;
+      }
+
       // Visual feedback
-      const originalHtml = copyBtn.innerHTML;
+      // Note: innerHTML is safe here as content is static/hardcoded, not user input
       copyBtn.innerHTML = `
         <span class="icon">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -591,8 +606,9 @@ export function init(elements) {
         <span>Copied!</span>
       `;
 
-      setTimeout(() => {
-        copyBtn.innerHTML = originalHtml;
+      copyButtonTimeoutId = setTimeout(() => {
+        copyBtn.innerHTML = copyButtonOriginalHtml;
+        copyButtonTimeoutId = null;
       }, 2000);
     } else {
       updateStatus("Could not copy to clipboard");

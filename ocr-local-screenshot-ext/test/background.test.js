@@ -110,5 +110,86 @@ describe("Background Service Worker", () => {
       expect(consoleSpy).toHaveBeenCalledWith("Error capturing region:", expect.any(Error));
       consoleSpy.mockRestore();
     });
+
+    it("should show notification when capture fails", async () => {
+      chrome.tabs.captureVisibleTab = vi.fn().mockRejectedValue(new Error("Capture failed"));
+
+      vi.resetModules();
+      await import("../src/background.js");
+
+      const mockTab = { id: 1, windowId: 1 };
+      const mockRect = { x: 0, y: 0, width: 100, height: 100 };
+
+      messageHandler({ type: "regionSelected", rect: mockRect }, { tab: mockTab }, vi.fn());
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.notifications.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "basic",
+          title: expect.stringContaining("Error"),
+          message: expect.stringContaining("Capture failed"),
+        })
+      );
+    });
+  });
+
+  describe("Storage Cleanup", () => {
+    it("should clean up stale region data on startup", async () => {
+      // Setup stale data (older than 60 seconds)
+      const staleData = {
+        pendingRegionOcr: {
+          dataUrl: "data:image/png;base64,oldData",
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          timestamp: Date.now() - 120000, // 2 minutes old
+        },
+      };
+      chrome.storage.local.get.mockResolvedValueOnce(staleData);
+
+      vi.resetModules();
+      await import("../src/background.js");
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith("pendingRegionOcr");
+    });
+
+    it("should not clean up fresh region data on startup", async () => {
+      // Setup fresh data (less than 60 seconds old)
+      const freshData = {
+        pendingRegionOcr: {
+          dataUrl: "data:image/png;base64,freshData",
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          timestamp: Date.now() - 30000, // 30 seconds old
+        },
+      };
+      chrome.storage.local.get.mockResolvedValueOnce(freshData);
+      chrome.storage.local.remove.mockClear();
+
+      vi.resetModules();
+      await import("../src/background.js");
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Escape Key Cancellation", () => {
+    it("should show notification when Escape cancels selection", async () => {
+      await import("../src/background.js");
+
+      messageHandler({ type: "regionCancelled", reason: "escape" }, { tab: { id: 1 } }, vi.fn());
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.notifications.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "basic",
+          title: "Selection Cancelled",
+          message: expect.stringContaining("Escape"),
+        })
+      );
+    });
   });
 });

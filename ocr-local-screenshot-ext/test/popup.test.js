@@ -378,6 +378,109 @@ describe("Popup Logic Integration", () => {
       });
     });
 
+    describe("Bug 4: Double-click Copy should not leave button stuck", () => {
+      it("should cancel previous timeout on rapid clicks", async () => {
+        vi.clearAllMocks();
+        elements.outputEl.value = "Some text";
+
+        // First click
+        elements.copyBtn.click();
+        await Promise.resolve();
+
+        // Rapid second click before timeout completes
+        elements.copyBtn.click();
+        await Promise.resolve();
+
+        // Fast forward past the timeout
+        await vi.advanceTimersByTimeAsync(2500);
+
+        // Button should be restored, not stuck on "Copied!"
+        expect(elements.copyBtn.innerHTML).toContain("Copy");
+        expect(elements.copyBtn.innerHTML).not.toContain("Copied!");
+      });
+    });
+
+    describe("Bug 5: isProcessing should be set immediately on capture", () => {
+      it("should disable buttons immediately when screenshot starts", async () => {
+        vi.clearAllMocks();
+
+        // Mock captureVisibleTab to be slow
+        let resolveCapture;
+        chrome.tabs.captureVisibleTab.mockReturnValue(
+          new Promise((resolve) => {
+            resolveCapture = resolve;
+          })
+        );
+
+        // Click screenshot
+        elements.screenshotBtn.click();
+        await Promise.resolve();
+
+        // Buttons should be disabled immediately, before capture completes
+        expect(elements.screenshotBtn.disabled).toBe(true);
+        expect(elements.regionBtn.disabled).toBe(true);
+
+        // Complete capture
+        resolveCapture("data:image/png;base64,mockData");
+        await flushAll();
+      });
+
+      it("should prevent double-click on Capture Tab button", async () => {
+        vi.clearAllMocks();
+
+        // Mock captureVisibleTab to be slow
+        let resolveCapture;
+        chrome.tabs.captureVisibleTab.mockReturnValue(
+          new Promise((resolve) => {
+            resolveCapture = resolve;
+          })
+        );
+
+        // First click
+        elements.screenshotBtn.click();
+        await Promise.resolve();
+
+        // Try to click again
+        elements.screenshotBtn.click();
+        await Promise.resolve();
+
+        // captureVisibleTab should only be called once
+        expect(chrome.tabs.captureVisibleTab).toHaveBeenCalledTimes(1);
+
+        // Complete capture
+        resolveCapture("data:image/png;base64,mockData");
+        await flushAll();
+      });
+    });
+
+    describe("Bug 6: Cancel button should be visible during capture", () => {
+      it("should show cancel button immediately when capture starts", async () => {
+        vi.clearAllMocks();
+
+        // Mock captureVisibleTab to be slow
+        let resolveCapture;
+        chrome.tabs.captureVisibleTab.mockReturnValue(
+          new Promise((resolve) => {
+            resolveCapture = resolve;
+          })
+        );
+
+        // Cancel button starts hidden
+        expect(elements.cancelBtn.style.display).toBe("none");
+
+        // Click screenshot
+        elements.screenshotBtn.click();
+        await Promise.resolve();
+
+        // Cancel button should be visible immediately
+        expect(elements.cancelBtn.style.display).toBe("flex");
+
+        // Complete capture
+        resolveCapture("data:image/png;base64,mockData");
+        await flushAll();
+      });
+    });
+
     describe("Bug 3: Region captures should scale large images", () => {
       it("should scale down large region captures", async () => {
         vi.clearAllMocks();

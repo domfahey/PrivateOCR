@@ -187,6 +187,9 @@ describe("Content Script - Region Selection", () => {
         })
       );
 
+      // Wait for async sendMessage to complete
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       // Should send a message to notify user about the cancelled selection
       expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -255,15 +258,82 @@ describe("Content Script - Region Selection", () => {
 
       expect(window.__ocrRegionSelectorActive).toBe(false);
     });
+
+    it("should send regionCancelled message on Escape key", async () => {
+      await import("../src/content.js");
+
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Escape",
+          bubbles: true,
+        })
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "regionCancelled",
+          reason: "escape",
+        })
+      );
+    });
+  });
+
+  describe("Viewport Clamping", () => {
+    it("should reject selection that becomes too small after viewport clamping", async () => {
+      // Mock viewport dimensions
+      Object.defineProperty(window, "innerWidth", { value: 100, writable: true });
+      Object.defineProperty(window, "innerHeight", { value: 100, writable: true });
+
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      // Start selection at edge of viewport
+      overlay.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 95,
+          clientY: 95,
+          bubbles: true,
+        })
+      );
+
+      // End selection beyond viewport - after clamping width/height will be 5x5 (< 10)
+      document.dispatchEvent(
+        new MouseEvent("mouseup", {
+          clientX: 120,
+          clientY: 120,
+          bubbles: true,
+        })
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Should send regionCancelled, not regionSelected
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "regionCancelled",
+          reason: "tooSmall",
+        })
+      );
+      expect(chrome.runtime.sendMessage).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "regionSelected",
+        })
+      );
+    });
   });
 
   describe("Device Pixel Ratio Handling", () => {
     it("should account for devicePixelRatio in rect coordinates", async () => {
-      // Mock devicePixelRatio
+      // Mock devicePixelRatio and viewport dimensions
       Object.defineProperty(window, "devicePixelRatio", {
         value: 2,
         writable: true,
       });
+      Object.defineProperty(window, "innerWidth", { value: 1024, writable: true });
+      Object.defineProperty(window, "innerHeight", { value: 768, writable: true });
 
       await import("../src/content.js");
 

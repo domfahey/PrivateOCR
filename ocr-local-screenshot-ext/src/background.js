@@ -16,6 +16,28 @@
  */
 
 /**
+ * Clean up stale region data on startup.
+ * This handles the case where region data was stored but the popup never opened.
+ */
+async function cleanupStaleData() {
+  try {
+    const result = await chrome.storage.local.get("pendingRegionOcr");
+    if (result.pendingRegionOcr) {
+      const { timestamp } = result.pendingRegionOcr;
+      // Remove data older than 60 seconds
+      if (Date.now() - timestamp >= 60000) {
+        await chrome.storage.local.remove("pendingRegionOcr");
+      }
+    }
+  } catch (err) {
+    // Ignore cleanup errors
+  }
+}
+
+// Run cleanup on service worker startup
+cleanupStaleData();
+
+/**
  * Listen for messages from content scripts.
  * Currently handles "regionSelected" messages from the region selection overlay.
  */
@@ -31,7 +53,7 @@ chrome.runtime.onMessage.addListener((message, sender, _sendResponse) => {
  * Handle region selection cancellation.
  * Shows a notification to the user explaining why selection was cancelled.
  *
- * @param {string} reason - The reason for cancellation (e.g., "tooSmall")
+ * @param {string} reason - The reason for cancellation (e.g., "tooSmall", "escape")
  */
 function handleRegionCancelled(reason) {
   if (reason === "tooSmall") {
@@ -41,6 +63,14 @@ function handleRegionCancelled(reason) {
       iconUrl: "icons/icon48.png",
       title: "Selection Too Small",
       message: "Please drag a larger area (at least 10x10 pixels) to select a region for OCR.",
+    });
+  } else if (reason === "escape") {
+    // Show a notification that selection was cancelled by user
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "icons/icon48.png",
+      title: "Selection Cancelled",
+      message: "Region selection cancelled. Press Escape was detected.",
     });
   }
 }
@@ -82,5 +112,12 @@ async function handleRegionSelection(tab, rect) {
     });
   } catch (err) {
     console.error("Error capturing region:", err);
+    // Show notification to user since popup may not open
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "icons/icon48.png",
+      title: "Capture Error",
+      message: err.message || "Failed to capture the region. Please try again.",
+    });
   }
 }

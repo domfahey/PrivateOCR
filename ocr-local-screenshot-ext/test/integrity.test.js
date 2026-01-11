@@ -10,18 +10,22 @@ const POPUP_HTML_PATH = path.join(PROJECT_ROOT, "src", "popup.html");
 
 describe("Project Integrity", () => {
   describe("Tesseract Vendor Files", () => {
+    // Core files required for Tesseract.js v7 to function
     const requiredFiles = [
       "tesseract.min.js",
       "worker.min.js",
-      "tesseract-core.wasm.js",
       "tesseract-core.wasm",
-      "tesseract-core-simd.wasm.js",
-      "tesseract-core-simd.wasm",
-      // Tesseract.js v6+ often requires LSTM variants by default
-      "tesseract-core-lstm.wasm.js",
+      "tesseract-core.wasm.js",
       "tesseract-core-lstm.wasm",
-      "tesseract-core-simd-lstm.wasm.js",
+      "tesseract-core-lstm.wasm.js",
+      "tesseract-core-simd.wasm",
+      "tesseract-core-simd.wasm.js",
       "tesseract-core-simd-lstm.wasm",
+      "tesseract-core-simd-lstm.wasm.js",
+      "tesseract-core-relaxedsimd.wasm",
+      "tesseract-core-relaxedsimd.wasm.js",
+      "tesseract-core-relaxedsimd-lstm.wasm",
+      "tesseract-core-relaxedsimd-lstm.wasm.js",
     ];
 
     it.each(requiredFiles)("should have %s present", (filename) => {
@@ -53,23 +57,26 @@ describe("Project Integrity", () => {
       const cssContent = fs.readFileSync(STYLES_PATH, "utf-8");
       const htmlContent = fs.readFileSync(POPUP_HTML_PATH, "utf-8");
 
-      // Extract ID selectors from CSS - only match at start of selector or after space/comma
-      // This avoids matching hex colors like #6750a4
-      const cssIdSelectorMatches = cssContent.match(/(?:^|[\s,{])#([a-zA-Z][\w-]*)/gm) || [];
-      const cssIdSelectors = cssIdSelectorMatches.map((m) => {
-        const match = m.match(/#([a-zA-Z][\w-]*)/);
-        return match ? match[1] : null;
-      }).filter(Boolean);
+      // Extract ID selectors from CSS - match # at start of line or after selector chars
+      // but NOT after : (which would indicate a property value like color: #fff)
+      // Pattern: look for # that follows {, whitespace, comma, or start of line (not :)
+      const lines = cssContent.split('\n');
+      const cssIdSelectors = [];
 
-      // Filter out hex color values (3, 4, 6, or 8 hex chars that are all hex digits)
-      const hexColorPattern = /^[a-fA-F0-9]{3,8}$/;
-      const actualIdSelectors = cssIdSelectors.filter((id) => !hexColorPattern.test(id));
+      for (const line of lines) {
+        // Skip lines that are CSS property values (contain : before #)
+        // Match lines like "#previewImage {" or selectors like ".foo, #bar"
+        const selectorMatch = line.match(/^([^:]*?)#([a-zA-Z][\w-]*)/);
+        if (selectorMatch && !selectorMatch[1].includes(':')) {
+          cssIdSelectors.push(selectorMatch[2]);
+        }
+      }
 
       // Extract IDs from HTML (e.g., id="previewImage")
       const htmlIds = htmlContent.match(/id="([^"]+)"/g)?.map((m) => m.match(/id="([^"]+)"/)[1]) || [];
 
       // Check that CSS ID selectors have corresponding HTML IDs
-      const unmatchedSelectors = actualIdSelectors.filter((selectorId) => {
+      const unmatchedSelectors = cssIdSelectors.filter((selectorId) => {
         return !htmlIds.includes(selectorId);
       });
 
@@ -81,12 +88,13 @@ describe("Project Integrity", () => {
 
       // Check that .preview-container has position: relative
       // since .preview-toolbar uses position: absolute
-      const previewContainerMatch = cssContent.match(/\.preview-container\s*\{[^}]+\}/);
-      expect(previewContainerMatch).not.toBeNull();
+      // Use a more robust regex that handles multi-line blocks
+      const previewContainerMatch = cssContent.match(/\.preview-container\s*\{[\s\S]*?position:\s*relative[\s\S]*?\}/);
 
-      const hasPositionRelative = previewContainerMatch[0].includes("position") &&
-        previewContainerMatch[0].includes("relative");
-      expect(hasPositionRelative, ".preview-container should have position: relative for absolute children").toBe(true);
+      expect(
+        previewContainerMatch,
+        ".preview-container should have position: relative for absolute children"
+      ).not.toBeNull();
     });
   });
 });

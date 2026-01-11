@@ -145,7 +145,17 @@
       height: Math.abs(currentY - startY),
     };
 
-    // Require minimum selection size
+    // Clamp to viewport bounds to avoid negative values or overflow
+    // This must happen BEFORE size validation to catch edge cases where
+    // a selection looks valid but becomes too small after clamping
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    rect.x = Math.max(0, rect.x);
+    rect.y = Math.max(0, rect.y);
+    rect.width = Math.min(rect.width, viewportWidth - rect.x);
+    rect.height = Math.min(rect.height, viewportHeight - rect.y);
+
+    // Require minimum selection size AFTER clamping
     if (rect.width < 10 || rect.height < 10) {
       // Notify background script that selection was cancelled due to size
       chrome.runtime
@@ -159,14 +169,6 @@
       cleanup();
       return;
     }
-
-    // Clamp to viewport bounds to avoid negative values or overflow
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    rect.x = Math.max(0, rect.x);
-    rect.y = Math.max(0, rect.y);
-    rect.width = Math.min(rect.width, viewportWidth - rect.x);
-    rect.height = Math.min(rect.height, viewportHeight - rect.y);
 
     // Account for device pixel ratio for high-DPI screens (Retina displays)
     // Screenshots are captured at native resolution, so coordinates need to match
@@ -199,6 +201,15 @@
    */
   function handleKeyDown(e) {
     if (e.key === "Escape") {
+      // Notify background script that selection was cancelled by Escape
+      chrome.runtime
+        .sendMessage({
+          type: "regionCancelled",
+          reason: "escape",
+        })
+        .catch(() => {
+          // Ignore errors if background script is not listening
+        });
       cleanup();
     }
   }
