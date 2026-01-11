@@ -44,7 +44,11 @@
 - Errors during `captureVisibleTab` leave the progress indicator in an indeterminate state because `updateStatus` sets "Capturing screenshot..." and the catch block never resets it (`src/popup-logic.js:476`, `src/popup-logic.js:210`).
 - Region capture doesn’t set `isProcessing` until OCR starts, so users can click other actions while cropping/scaling runs and trigger overlapping flows (`src/popup-logic.js:543`, `src/popup-logic.js:95`).
 - Tesseract logger calls `updateStatus(m.status)` without `progress`, so the UI hides the progress bar even while OCR is still active for statuses not in the whitelist (`src/popup-logic.js:256`, `src/popup-logic.js:219`).
-- `chrome.notifications.create` is used but the `notifications` permission is missing, so cancellation/error alerts can silently fail (`src/background.js:61`, `manifest.json:14`).
 - `chrome.windows.create` isn’t awaited inside `handleRegionSelection`, so any failure to open the popup won’t be caught and surfaced to the user (`src/background.js:107`).
+- `handleRegionCapture` reports "Scaling large image..." after `scaleImageIfNeeded` completes, so the long-running step has no progress/status while it actually happens (`src/popup-logic.js:548`).
+- `updatePreview` assumes `previewImage` exists; if `init` is called with missing elements, `previewImage.src` will throw (`src/popup-logic.js:74`).
 - `handleRegionCapture` doesn’t set `isProcessing` true, so the cancel button remains hidden and actions stay enabled during cropping/scaling (`src/popup-logic.js:543`, `src/popup-logic.js:187`).
 - `checkRegionMode` silently does nothing if `pendingRegionOcr` is missing, leaving the popup in “Ready” without explaining that the region data expired or was cleared (`src/popup-logic.js:630`).
+- Auto-copy happens after OCR completes, but the manifest lacks `clipboardWrite`; without an active user gesture, `navigator.clipboard.writeText` is likely rejected, so auto-copy silently fails despite the UI promise (`src/popup-logic.js:396`, `manifest.json:24`).
+- Region captures can include the dark overlay/selection box because the content script removes the overlay and immediately triggers capture, without waiting for a repaint before `captureVisibleTab` runs (`src/content.js:183`, `src/background.js:86`).
+- Storing full screenshot data URLs in `chrome.storage.local` can exceed the default quota on high-DPI screens; without `unlimitedStorage`, region capture can fail before the popup opens (`src/background.js:97`, `manifest.json:24`).
