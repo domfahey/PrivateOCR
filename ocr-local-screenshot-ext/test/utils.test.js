@@ -56,6 +56,31 @@ describe("dataUrlToBlob", () => {
     // Check blob size matches decoded content ("Hello" = 5 bytes)
     expect(blob.size).toBe(5);
   });
+
+  it("should throw error for null input", () => {
+    expect(() => dataUrlToBlob(null)).toThrow("Invalid data URL: must be a non-empty string");
+  });
+
+  it("should throw error for undefined input", () => {
+    expect(() => dataUrlToBlob(undefined)).toThrow("Invalid data URL: must be a non-empty string");
+  });
+
+  it("should throw error for empty string", () => {
+    expect(() => dataUrlToBlob("")).toThrow("Invalid data URL: must be a non-empty string");
+  });
+
+  it("should throw error for non-string input", () => {
+    expect(() => dataUrlToBlob(123)).toThrow("Invalid data URL: must be a non-empty string");
+  });
+
+  it("should throw error for data URL missing comma separator", () => {
+    expect(() => dataUrlToBlob("data:image/png;base64nocomma")).toThrow("Invalid data URL: missing comma separator");
+  });
+
+  it("should throw error for invalid base64 content", () => {
+    // Invalid base64 that will cause atob to fail
+    expect(() => dataUrlToBlob("data:image/png;base64,!!!invalid!!!")).toThrow("Invalid data URL: failed to decode base64 content");
+  });
 });
 
 describe("isValidDataUrl", () => {
@@ -302,7 +327,7 @@ describe("scaleImageIfNeeded", () => {
 
   it("should handle image load error", async () => {
     const dataUrl = "data:image/png;base64,bad";
-    
+
     global.Image = class {
         constructor() {
             setTimeout(() => {
@@ -310,6 +335,37 @@ describe("scaleImageIfNeeded", () => {
             }, 10);
         }
     };
+
+    const result = await scaleImageIfNeeded(dataUrl);
+    expect(result.scaled).toBe(false);
+    expect(result.dataUrl).toBe(dataUrl);
+  });
+
+  it("should return original when canvas context is null", async () => {
+    const dataUrl = "data:image/png;base64,large";
+
+    // Mock Image with dimensions that require scaling
+    const OriginalMock = global.Image;
+    global.Image = class extends OriginalMock {
+        constructor() {
+            super();
+            this.width = 4000; // > 3000 limit
+            this.height = 100;
+        }
+    };
+
+    // Mock canvas to return null context
+    document.createElement = vi.fn((tag) => {
+      if (tag === "canvas") {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => null, // Return null context
+          toDataURL: () => "data:image/png;base64,mockScaled",
+        };
+      }
+      return originalCreateElement.call(document, tag);
+    });
 
     const result = await scaleImageIfNeeded(dataUrl);
     expect(result.scaled).toBe(false);

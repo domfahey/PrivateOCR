@@ -51,6 +51,8 @@ export function init(elements) {
   let isProcessing = false;
   let isCancelled = false;
   let currentImageDataUrl = null;
+  let sourceWindowId = null; // Original window ID when in region mode
+  let isRegionModePopup = false; // True if opened as region mode popup
 
   // UI State
   let isPreviewVisible = true;
@@ -187,7 +189,8 @@ export function init(elements) {
   function setProcessing(processing) {
     isProcessing = processing;
     if (screenshotBtn) screenshotBtn.disabled = processing;
-    if (regionBtn) regionBtn.disabled = processing;
+    // Keep region button disabled in region mode popup (can't inject into extension pages)
+    if (regionBtn) regionBtn.disabled = processing || isRegionModePopup;
     // Show cancel button only when processing
     if (cancelBtn) cancelBtn.style.display = processing ? "flex" : "none";
   }
@@ -417,15 +420,27 @@ export function init(elements) {
   }
 
   /**
-   * Capture the visible area of the current active tab.
+   * Get the window ID of the current active tab.
+   * @returns {Promise<number>} The window ID
    */
-  async function captureCurrentTabAsFile() {
+  async function getActiveWindowId() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) {
       throw new Error("No active tab found");
     }
+    return tab.windowId;
+  }
+
+  /**
+   * Capture the visible area of the current active tab.
+   * In region mode, uses the stored source window ID to capture from the original page.
+   */
+  async function captureCurrentTabAsFile() {
+    // In region mode, use the stored source window ID instead of querying active tab
+    // This prevents capturing the popup window itself
+    const windowId = sourceWindowId || (await getActiveWindowId());
     // Chrome API to capture the visible tab as a PNG data URL
-    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+    const dataUrl = await chrome.tabs.captureVisibleTab(windowId, {
       format: "png",
     });
 
@@ -626,11 +641,18 @@ export function init(elements) {
   async function checkRegionMode() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("regionMode") === "true") {
+      // Mark as region mode popup and disable region selection
+      // (can't inject content scripts into extension pages)
+      isRegionModePopup = true;
+      if (regionBtn) regionBtn.disabled = true;
+
       try {
         // Retrieve the captured data stored by the background script
         const result = await chrome.storage.local.get("pendingRegionOcr");
         if (result.pendingRegionOcr) {
-          const { dataUrl, rect, timestamp } = result.pendingRegionOcr;
+          const { dataUrl, rect, timestamp, sourceWindowId: storedWindowId } = result.pendingRegionOcr;
+          // Store source window ID for future captures in this popup
+          sourceWindowId = storedWindowId;
           // Clean up storage immediately
           await chrome.storage.local.remove("pendingRegionOcr");
           // Only process if data is fresh (< 1 minute) to avoid processing stale data

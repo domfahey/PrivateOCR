@@ -63,6 +63,24 @@ describe("Background Service Worker", () => {
       );
     });
 
+    it("should store source tab ID and window ID for region mode popup", async () => {
+      const mockTab = { id: 42, windowId: 10 };
+      const mockRect = { x: 0, y: 0, width: 100, height: 100 };
+
+      messageHandler({ type: "regionSelected", rect: mockRect }, { tab: mockTab }, vi.fn());
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.storage.local.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pendingRegionOcr: expect.objectContaining({
+            sourceTabId: 42,
+            sourceWindowId: 10,
+          }),
+        })
+      );
+    });
+
     it("should open popup window with adequate size for UI", async () => {
       const mockTab = { id: 1, windowId: 1 };
       const mockRect = { x: 0, y: 0, width: 100, height: 100 };
@@ -173,9 +191,34 @@ describe("Background Service Worker", () => {
 
       expect(chrome.storage.local.remove).not.toHaveBeenCalled();
     });
+
+    it("should handle storage errors gracefully during cleanup", async () => {
+      // Mock storage.local.get to throw an error
+      chrome.storage.local.get.mockRejectedValueOnce(new Error("Storage error"));
+
+      vi.resetModules();
+
+      // Should not throw, just silently ignore the error
+      await expect(import("../src/background.js")).resolves.not.toThrow();
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    it("should not clean up when no pending data exists", async () => {
+      // No pending data
+      chrome.storage.local.get.mockResolvedValueOnce({});
+      chrome.storage.local.remove.mockClear();
+
+      vi.resetModules();
+      await import("../src/background.js");
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+    });
   });
 
-  describe("Escape Key Cancellation", () => {
+  describe("Region Cancellation", () => {
     it("should show notification when Escape cancels selection", async () => {
       await import("../src/background.js");
 
@@ -190,6 +233,33 @@ describe("Background Service Worker", () => {
           message: expect.stringContaining("Escape"),
         })
       );
+    });
+
+    it("should show notification when selection is too small", async () => {
+      await import("../src/background.js");
+
+      messageHandler({ type: "regionCancelled", reason: "tooSmall" }, { tab: { id: 1 } }, vi.fn());
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.notifications.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "basic",
+          title: "Selection Too Small",
+          message: expect.stringContaining("10x10 pixels"),
+        })
+      );
+    });
+
+    it("should not show notification for unknown cancellation reasons", async () => {
+      await import("../src/background.js");
+      chrome.notifications.create.mockClear();
+
+      messageHandler({ type: "regionCancelled", reason: "unknown" }, { tab: { id: 1 } }, vi.fn());
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.notifications.create).not.toHaveBeenCalled();
     });
   });
 });

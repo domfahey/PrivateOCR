@@ -481,6 +481,7 @@ describe("Popup Logic Integration", () => {
       });
     });
 
+
     describe("Bug 3: Region captures should scale large images", () => {
       it("should scale down large region captures", async () => {
         vi.clearAllMocks();
@@ -551,6 +552,150 @@ describe("Popup Logic Integration", () => {
           value: originalLocation,
         });
         document.createElement.mockRestore();
+      });
+    });
+
+    describe("Region Mode Edge Cases", () => {
+      it("should show error for expired region data", async () => {
+        vi.clearAllMocks();
+
+        // Set up region mode with expired data (older than 60 seconds)
+        const originalLocation = window.location;
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: { ...originalLocation, search: "?regionMode=true" },
+        });
+
+        chrome.storage.local.get.mockResolvedValueOnce({
+          pendingRegionOcr: {
+            dataUrl: "data:image/png;base64,expiredData",
+            rect: { x: 0, y: 0, width: 100, height: 100 },
+            timestamp: Date.now() - 120000, // 2 minutes old
+          },
+        });
+
+        init(elements);
+        await flushAll();
+
+        expect(elements.statusEl.textContent).toBe("Region data expired, please try again");
+
+        // Restore location
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: originalLocation,
+        });
+      });
+
+      it("should handle storage error in region mode", async () => {
+        vi.clearAllMocks();
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        const originalLocation = window.location;
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: { ...originalLocation, search: "?regionMode=true" },
+        });
+
+        chrome.storage.local.get.mockRejectedValueOnce(new Error("Storage access denied"));
+
+        init(elements);
+        await flushAll();
+
+        expect(consoleSpy).toHaveBeenCalledWith("Error loading region data:", expect.any(Error));
+        expect(elements.statusEl.textContent).toContain("Error");
+
+        consoleSpy.mockRestore();
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: originalLocation,
+        });
+      });
+
+      it("should handle missing region data gracefully", async () => {
+        vi.clearAllMocks();
+
+        const originalLocation = window.location;
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: { ...originalLocation, search: "?regionMode=true" },
+        });
+
+        // No pending data
+        chrome.storage.local.get.mockResolvedValueOnce({});
+
+        init(elements);
+        await flushAll();
+
+        // Should not show error, just be ready
+        expect(elements.statusEl.textContent).not.toContain("Error");
+
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: originalLocation,
+        });
+      });
+    });
+
+    describe("Region Click Error Handling", () => {
+      it("should show error when scripting.executeScript fails", async () => {
+        vi.clearAllMocks();
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        chrome.tabs.query.mockResolvedValueOnce([{ id: 1, url: "https://example.com", windowId: 1 }]);
+        chrome.scripting.executeScript.mockRejectedValueOnce(new Error("Script injection failed"));
+
+        init(elements);
+        elements.regionBtn.click();
+        await flushAll();
+
+        expect(elements.statusEl.textContent).toContain("Error");
+        expect(consoleSpy).toHaveBeenCalled();
+
+        consoleSpy.mockRestore();
+      });
+
+      it("should show specific error for access denied pages", async () => {
+        vi.clearAllMocks();
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        chrome.tabs.query.mockResolvedValueOnce([{ id: 1, url: "https://example.com", windowId: 1 }]);
+        chrome.scripting.executeScript.mockRejectedValueOnce(new Error("Cannot access this chrome:// page"));
+
+        init(elements);
+        elements.regionBtn.click();
+        await flushAll();
+
+        expect(elements.statusEl.textContent).toBe("Error: Cannot select region on this page");
+
+        consoleSpy.mockRestore();
+      });
+
+      it("should handle tab without URL", async () => {
+        vi.clearAllMocks();
+
+        chrome.tabs.query.mockResolvedValueOnce([{ id: 1, windowId: 1 }]); // No URL
+
+        init(elements);
+        elements.regionBtn.click();
+        await flushAll();
+
+        expect(elements.statusEl.textContent).toBe("Error: Cannot access this tab");
+      });
+    });
+
+    describe("Copy Button Edge Cases", () => {
+      it("should handle clipboard write failure", async () => {
+        vi.clearAllMocks();
+        elements.outputEl.value = "Some text";
+
+        // Mock clipboard to fail
+        navigator.clipboard.writeText = vi.fn().mockRejectedValue(new Error("Clipboard blocked"));
+
+        init(elements);
+        elements.copyBtn.click();
+        await flushAll();
+
+        expect(elements.statusEl.textContent).toBe("Could not copy to clipboard");
       });
     });
   });
