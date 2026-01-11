@@ -18,17 +18,11 @@
   if (window.__ocrRegionSelectorActive) return;
   window.__ocrRegionSelectorActive = true;
 
-  /** @type {HTMLDivElement|null} Dark overlay covering the page */
-  let overlay = null;
-  /** @type {HTMLDivElement|null} Dashed rectangle showing user's selection */
+  let selectionOverlay = null;
   let selectionBox = null;
-  /** @type {HTMLDivElement|null} Instruction banner at top of screen */
-  let instructions = null;
-  /** @type {number} X coordinate where drag started */
-  let startX = 0;
-  /** @type {number} Y coordinate where drag started */
-  let startY = 0;
-  /** @type {boolean} Whether the user is currently dragging */
+  let instructionsPanel = null;
+  let selectionStartX = 0;
+  let selectionStartY = 0;
   let isSelecting = false;
 
   /**
@@ -37,8 +31,8 @@
    */
   function createOverlay() {
     // Create overlay elements with high z-index to ensure they sit on top of all page content
-    overlay = document.createElement("div");
-    overlay.style.cssText = `
+    selectionOverlay = document.createElement("div");
+    selectionOverlay.style.cssText = `
       position: fixed;
       top: 0;
       left: 0;
@@ -58,8 +52,8 @@
       z-index: 2147483647;
     `;
 
-    instructions = document.createElement("div");
-    instructions.style.cssText = `
+    instructionsPanel = document.createElement("div");
+    instructionsPanel.style.cssText = `
       position: fixed;
       top: 10px;
       left: 50%;
@@ -72,30 +66,25 @@
       font-size: 14px;
       z-index: 2147483647;
     `;
-    instructions.textContent = "Click and drag to select a region. Press Escape to cancel.";
+    instructionsPanel.textContent = "Click and drag to select a region. Press Escape to cancel.";
 
-    document.body.appendChild(overlay);
+    document.body.appendChild(selectionOverlay);
     document.body.appendChild(selectionBox);
-    document.body.appendChild(instructions);
+    document.body.appendChild(instructionsPanel);
 
-    overlay.addEventListener("mousedown", handleMouseDown);
+    selectionOverlay.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("keydown", handleKeyDown);
   }
 
-  /**
-   * Handle mousedown to start selection.
-   * Records the starting position and shows the selection box.
-   * @param {MouseEvent} e - The mousedown event
-   */
-  function handleMouseDown(e) {
-    e.preventDefault();
+  function handleMouseDown(event) {
+    event.preventDefault();
     isSelecting = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    selectionBox.style.left = startX + "px";
-    selectionBox.style.top = startY + "px";
+    selectionStartX = event.clientX;
+    selectionStartY = event.clientY;
+    selectionBox.style.left = selectionStartX + "px";
+    selectionBox.style.top = selectionStartY + "px";
     selectionBox.style.width = "0px";
     selectionBox.style.height = "0px";
     selectionBox.style.display = "block";
@@ -108,20 +97,20 @@
    */
   function handleMouseMove(e) {
     if (!isSelecting) return;
-    e.preventDefault();
+    event.preventDefault();
 
-    const currentX = e.clientX;
-    const currentY = e.clientY;
+    const currentMouseX = event.clientX;
+    const currentMouseY = event.clientY;
 
-    const left = Math.min(startX, currentX);
-    const top = Math.min(startY, currentY);
-    const width = Math.abs(currentX - startX);
-    const height = Math.abs(currentY - startY);
+    const selectionLeft = Math.min(selectionStartX, currentMouseX);
+    const selectionTop = Math.min(selectionStartY, currentMouseY);
+    const selectionWidth = Math.abs(currentMouseX - selectionStartX);
+    const selectionHeight = Math.abs(currentMouseY - selectionStartY);
 
-    selectionBox.style.left = left + "px";
-    selectionBox.style.top = top + "px";
-    selectionBox.style.width = width + "px";
-    selectionBox.style.height = height + "px";
+    selectionBox.style.left = selectionLeft + "px";
+    selectionBox.style.top = selectionTop + "px";
+    selectionBox.style.width = selectionWidth + "px";
+    selectionBox.style.height = selectionHeight + "px";
   }
 
   /**
@@ -134,15 +123,15 @@
     if (!isSelecting) return;
     isSelecting = false;
 
-    const currentX = e.clientX;
-    const currentY = e.clientY;
+    const selectionEndX = event.clientX;
+    const selectionEndY = event.clientY;
 
     // Normalize coordinates (handle dragging backwards/upwards)
-    const rect = {
-      x: Math.min(startX, currentX),
-      y: Math.min(startY, currentY),
-      width: Math.abs(currentX - startX),
-      height: Math.abs(currentY - startY),
+    const selectedRegion = {
+      x: Math.min(selectionStartX, selectionEndX),
+      y: Math.min(selectionStartY, selectionEndY),
+      width: Math.abs(selectionEndX - selectionStartX),
+      height: Math.abs(selectionEndY - selectionStartY),
     };
 
     // Clamp to viewport bounds to avoid negative values or overflow
@@ -150,10 +139,10 @@
     // a selection looks valid but becomes too small after clamping
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    rect.x = Math.max(0, rect.x);
-    rect.y = Math.max(0, rect.y);
-    rect.width = Math.min(rect.width, viewportWidth - rect.x);
-    rect.height = Math.min(rect.height, viewportHeight - rect.y);
+    selectedRegion.x = Math.max(0, selectedRegion.x);
+    selectedRegion.y = Math.max(0, selectedRegion.y);
+    selectedRegion.width = Math.min(selectedRegion.width, viewportWidth - selectedRegion.x);
+    selectedRegion.height = Math.min(selectedRegion.height, viewportHeight - selectedRegion.y);
 
     // Require minimum selection size AFTER clamping
     if (rect.width < 10 || rect.height < 10) {
@@ -172,12 +161,12 @@
 
     // Account for device pixel ratio for high-DPI screens (Retina displays)
     // Screenshots are captured at native resolution, so coordinates need to match
-    const dpr = window.devicePixelRatio || 1;
-    const scaledRect = {
-      x: Math.round(rect.x * dpr),
-      y: Math.round(rect.y * dpr),
-      width: Math.round(rect.width * dpr),
-      height: Math.round(rect.height * dpr),
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    const deviceScaledRegion = {
+      x: Math.round(selectedRegion.x * devicePixelRatio),
+      y: Math.round(selectedRegion.y * devicePixelRatio),
+      width: Math.round(selectedRegion.width * devicePixelRatio),
+      height: Math.round(selectedRegion.height * devicePixelRatio),
     };
 
     cleanup();
@@ -187,10 +176,10 @@
     chrome.runtime
       .sendMessage({
         type: "regionSelected",
-        rect: scaledRect,
+        rect: deviceScaledRegion,
       })
-      .catch((err) => {
-        console.error("Failed to send region selection:", err);
+      .catch((error) => {
+        console.error("Failed to send region selection:", error);
       });
   }
 
@@ -220,9 +209,9 @@
    */
   function cleanup() {
     window.__ocrRegionSelectorActive = false;
-    if (overlay) overlay.remove();
+    if (selectionOverlay) selectionOverlay.remove();
     if (selectionBox) selectionBox.remove();
-    if (instructions) instructions.remove();
+    if (instructionsPanel) instructionsPanel.remove();
     document.removeEventListener("mousemove", handleMouseMove);
     document.removeEventListener("mouseup", handleMouseUp);
     document.removeEventListener("keydown", handleKeyDown);

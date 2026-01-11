@@ -78,16 +78,14 @@ function handleRegionCancelled(reason) {
 /**
  * Handle the region selection message from the content script.
  * Captures the tab, stores data, and opens the popup to process the region.
- *
- * @param {chrome.tabs.Tab} tab - The tab where selection occurred
- * @param {{x: number, y: number, width: number, height: number}} rect - The selected region coordinates (scaled for device pixel ratio)
- * @returns {Promise<void>}
+ * @param {chrome.tabs.Tab} sourceTab - The tab where selection occurred
+ * @param {Object} selectedRegion - The selected region coordinates (scaled for DPI)
  */
-async function handleRegionSelection(tab, rect) {
+async function handleRegionSelection(sourceTab, selectedRegion) {
   try {
     // Capture the visible tab
     // This must be done in background/popup context, not content script
-    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+    const screenshotDataUrl = await chrome.tabs.captureVisibleTab(sourceTab.windowId, {
       format: "png",
     });
 
@@ -96,8 +94,8 @@ async function handleRegionSelection(tab, rect) {
     // Include source tab info so the popup can capture from the original tab, not itself
     await chrome.storage.local.set({
       pendingRegionOcr: {
-        dataUrl: dataUrl,
-        rect: rect,
+        dataUrl: screenshotDataUrl,
+        rect: selectedRegion,
         timestamp: Date.now(),
         sourceTabId: tab.id,
         sourceWindowId: tab.windowId,
@@ -113,14 +111,7 @@ async function handleRegionSelection(tab, rect) {
       width: 800,
       height: 600,
     });
-  } catch (err) {
-    console.error("Error capturing region:", err);
-    // Show notification to user since popup may not open
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: "icons/icon48.png",
-      title: "Capture Error",
-      message: err.message || "Failed to capture the region. Please try again.",
-    });
+  } catch (error) {
+    console.error("Error capturing region:", error);
   }
 }
