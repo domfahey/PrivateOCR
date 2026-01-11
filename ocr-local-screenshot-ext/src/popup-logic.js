@@ -181,6 +181,16 @@ export function init(elements) {
    * @param {string} msg - Status message to display
    * @param {number|null} progress - Progress between 0 and 1, or null
    */
+  // Statuses that indicate active processing (show indeterminate progress bar)
+  const PROCESSING_STATUSES = [
+    "Capturing screenshot...",
+    "Loading OCR engine...",
+    "Recognizing...",
+    "Cropping region...",
+    "Scaling large image...",
+    "Select a region on the page...",
+  ];
+
   function updateStatus(msg, progress = null) {
     if (statusEl) statusEl.textContent = msg;
 
@@ -190,17 +200,17 @@ export function init(elements) {
         progressTrack.classList.add("active");
         progressIndicator.classList.remove("indeterminate");
         progressIndicator.style.width = `${progress * 100}%`;
-      } else if (msg.startsWith("Done") || msg.includes("Error") || msg === "Cancelled") {
-        // Finished state: Hide progress bar after a short delay
-        setTimeout(() => {
-          progressTrack.classList.remove("active");
-          progressIndicator.style.width = "0%";
-        }, 1500);
-      } else {
+      } else if (PROCESSING_STATUSES.some((s) => msg.startsWith(s))) {
         // Indeterminate state for loading/initializing
         progressTrack.classList.add("active");
         progressIndicator.classList.add("indeterminate");
         progressIndicator.style.width = "50%"; // Trigger css animation
+      } else {
+        // Idle/finished state: Hide progress bar
+        // This handles: Done, Error, Cancelled, Ready, Copied, No text to copy, etc.
+        progressTrack.classList.remove("active");
+        progressIndicator.classList.remove("indeterminate");
+        progressIndicator.style.width = "0%";
       }
     }
     console.log(msg);
@@ -244,7 +254,12 @@ export function init(elements) {
       currentWorker = worker;
       updateStatus("Ready");
       return worker;
-    })();
+    })().catch((err) => {
+      // Reset cached promise on failure so user can retry
+      workerPromise = null;
+      currentWorker = null;
+      throw err;
+    });
 
     return workerPromise;
   }
@@ -510,8 +525,17 @@ export function init(elements) {
   async function handleRegionCapture(dataUrl, rect) {
     try {
       updateStatus("Cropping region...");
-      const { file, dataUrl: croppedDataUrl } = await cropImageToRegion(dataUrl, rect);
-      updatePreview(croppedDataUrl);
+      const { dataUrl: croppedDataUrl } = await cropImageToRegion(dataUrl, rect);
+
+      // Scale down if the cropped region is too large
+      const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(croppedDataUrl);
+      if (scaled) {
+        updateStatus("Scaling large image...");
+      }
+
+      updatePreview(processedUrl);
+      const blob = dataUrlToBlob(processedUrl);
+      const file = new File([blob], "region.png", { type: blob.type });
       await runOcrOnFile(file);
     } catch (err) {
       if (isCancelled || (err && err.message === "Cancelled")) {
