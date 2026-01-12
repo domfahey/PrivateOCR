@@ -49,10 +49,23 @@ describe("Content Script - Region Selection", () => {
       const instructions = document.body.textContent;
       expect(instructions).toContain("Click and drag");
     });
+
+    it("should allow clicks through instruction banner", async () => {
+      await import("../src/content.js");
+
+      // Find the instruction panel
+      const instructionsPanel = Array.from(document.querySelectorAll("div")).find(
+        (el) => el.textContent.includes("Click and drag")
+      );
+
+      expect(instructionsPanel).not.toBeNull();
+      // pointer-events: none allows clicks to pass through to overlay
+      expect(instructionsPanel.style.pointerEvents).toBe("none");
+    });
   });
 
   describe("Mouse Interaction", () => {
-    it("should create selection box on mousedown", async () => {
+    it("should create selection box on left-click mousedown", async () => {
       await import("../src/content.js");
 
       const overlay = document.querySelector('div[style*="cursor: crosshair"]');
@@ -60,12 +73,50 @@ describe("Content Script - Region Selection", () => {
       const mousedownEvent = new MouseEvent("mousedown", {
         clientX: 100,
         clientY: 100,
+        button: 0, // Left click
         bubbles: true,
       });
       overlay.dispatchEvent(mousedownEvent);
 
       const selectionBox = document.querySelector('div[style*="border: 2px dashed"]');
       expect(selectionBox).not.toBeNull();
+      expect(selectionBox.style.display).toBe("block");
+    });
+
+    it("should ignore right-click mousedown", async () => {
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      const mousedownEvent = new MouseEvent("mousedown", {
+        clientX: 100,
+        clientY: 100,
+        button: 2, // Right click
+        bubbles: true,
+      });
+      overlay.dispatchEvent(mousedownEvent);
+
+      const selectionBox = document.querySelector('div[style*="border: 2px dashed"]');
+      // Selection box should exist but not be visible (not triggered)
+      expect(selectionBox.style.display).toBe("none");
+    });
+
+    it("should ignore middle-click mousedown", async () => {
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      const mousedownEvent = new MouseEvent("mousedown", {
+        clientX: 100,
+        clientY: 100,
+        button: 1, // Middle click
+        bubbles: true,
+      });
+      overlay.dispatchEvent(mousedownEvent);
+
+      const selectionBox = document.querySelector('div[style*="border: 2px dashed"]');
+      // Selection box should exist but not be visible (not triggered)
+      expect(selectionBox.style.display).toBe("none");
     });
 
     it("should update selection box on mousemove", async () => {
@@ -242,6 +293,33 @@ describe("Content Script - Region Selection", () => {
       // Overlay should be removed
       const overlay = document.querySelector('div[style*="cursor: crosshair"]');
       expect(overlay).toBeNull();
+    });
+
+    it("should stop propagation on Escape to prevent page handlers", async () => {
+      await import("../src/content.js");
+
+      // Set up a listener to track if propagation was stopped
+      let pageHandlerCalled = false;
+      const pageHandler = () => {
+        pageHandlerCalled = true;
+      };
+      document.addEventListener("keydown", pageHandler);
+
+      // Create and dispatch Escape event
+      const escapeEvent = new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      });
+
+      // Track if stopPropagation was called
+      const stopPropSpy = vi.spyOn(escapeEvent, "stopPropagation");
+
+      document.dispatchEvent(escapeEvent);
+
+      expect(stopPropSpy).toHaveBeenCalled();
+
+      document.removeEventListener("keydown", pageHandler);
     });
 
     it("should reset __ocrRegionSelectorActive flag on cancel", async () => {

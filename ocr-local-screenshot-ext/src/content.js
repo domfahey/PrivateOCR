@@ -65,6 +65,7 @@
       font-family: system-ui, sans-serif;
       font-size: 14px;
       z-index: 2147483647;
+      pointer-events: none;
     `;
     instructionsPanel.textContent = "Click and drag to select a region. Press Escape to cancel.";
 
@@ -79,6 +80,8 @@
   }
 
   function handleMouseDown(event) {
+    // Only respond to left-click (button 0), ignore right-click (2) and middle-click (1)
+    if (event.button !== 0) return;
     event.preventDefault();
     isSelecting = true;
     selectionStartX = event.clientX;
@@ -180,6 +183,9 @@
 
   function handleKeyDown(event) {
     if (event.key === "Escape") {
+      // Prevent page handlers from also responding to Escape (e.g., closing modals)
+      event.preventDefault();
+      event.stopPropagation();
       // Notify background script that selection was cancelled by Escape
       chrome.runtime
         .sendMessage({
