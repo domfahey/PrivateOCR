@@ -24,10 +24,12 @@
   let selectionStartX = 0;
   let selectionStartY = 0;
   let isSelecting = false;
+  let activePointerId = null; // Track the pointer for capture/release
 
   /**
    * Create and inject the overlay elements into the page.
-   * Sets up mouse and keyboard event listeners for selection.
+   * Sets up pointer and keyboard event listeners for selection.
+   * Uses Pointer Events API to handle mouse release outside browser window.
    */
   function createOverlay() {
     // Create overlay elements with high z-index to ensure they sit on top of all page content
@@ -73,17 +75,24 @@
     document.body.appendChild(selectionBox);
     document.body.appendChild(instructionsPanel);
 
-    selectionOverlay.addEventListener("mousedown", handleMouseDown);
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
+    // Use Pointer Events API for reliable handling even when mouse is released outside window
+    selectionOverlay.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("pointermove", handlePointerMove);
+    document.addEventListener("pointerup", handlePointerUp);
     document.addEventListener("keydown", handleKeyDown);
   }
 
-  function handleMouseDown(event) {
+  function handlePointerDown(event) {
     // Only respond to left-click (button 0), ignore right-click (2) and middle-click (1)
     if (event.button !== 0) return;
     event.preventDefault();
+    event.stopPropagation(); // Prevent page scripts from intercepting selection gestures
     isSelecting = true;
+    activePointerId = event.pointerId;
+
+    // Capture pointer to receive events even when pointer moves outside window
+    selectionOverlay.setPointerCapture(event.pointerId);
+
     selectionStartX = event.clientX;
     selectionStartY = event.clientY;
     selectionBox.style.left = selectionStartX + "px";
@@ -93,17 +102,18 @@
     selectionBox.style.display = "block";
   }
 
-  function handleMouseMove(event) {
+  function handlePointerMove(event) {
     if (!isSelecting) return;
     event.preventDefault();
+    event.stopPropagation(); // Prevent page scripts from intercepting selection gestures
 
-    const currentMouseX = event.clientX;
-    const currentMouseY = event.clientY;
+    const currentPointerX = event.clientX;
+    const currentPointerY = event.clientY;
 
-    const selectionLeft = Math.min(selectionStartX, currentMouseX);
-    const selectionTop = Math.min(selectionStartY, currentMouseY);
-    const selectionWidth = Math.abs(currentMouseX - selectionStartX);
-    const selectionHeight = Math.abs(currentMouseY - selectionStartY);
+    const selectionLeft = Math.min(selectionStartX, currentPointerX);
+    const selectionTop = Math.min(selectionStartY, currentPointerY);
+    const selectionWidth = Math.abs(currentPointerX - selectionStartX);
+    const selectionHeight = Math.abs(currentPointerY - selectionStartY);
 
     selectionBox.style.left = selectionLeft + "px";
     selectionBox.style.top = selectionTop + "px";
@@ -111,9 +121,16 @@
     selectionBox.style.height = selectionHeight + "px";
   }
 
-  function handleMouseUp(event) {
+  function handlePointerUp(event) {
     if (!isSelecting) return;
+    event.stopPropagation(); // Prevent page scripts from intercepting selection gestures
     isSelecting = false;
+
+    // Release pointer capture
+    if (activePointerId !== null && selectionOverlay) {
+      selectionOverlay.releasePointerCapture(activePointerId);
+      activePointerId = null;
+    }
 
     const selectionEndX = event.clientX;
     const selectionEndY = event.clientY;
@@ -164,21 +181,25 @@
 
     cleanup();
 
-    // Send selection to background script to handle capture and popup opening
-    // Content scripts cannot use tabs.captureVisibleTab directly
-    chrome.runtime
-      .sendMessage({
-        type: "regionSelected",
-        rect: deviceScaledRegion,
-      })
-      .catch((error) => {
-        console.error("Failed to send region selection:", error);
-        // Alert user since they're waiting for popup that won't open
-        // This is a last resort when extension context is invalidated
-        window.alert(
-          "PrivateOCR: Failed to capture region. Please try again or reload the extension."
-        );
-      });
+    // Wait for the browser to repaint (overlay removed from screen) before triggering capture
+    // This prevents the overlay/selection box from appearing in the screenshot
+    requestAnimationFrame(() => {
+      // Send selection to background script to handle capture and popup opening
+      // Content scripts cannot use tabs.captureVisibleTab directly
+      chrome.runtime
+        .sendMessage({
+          type: "regionSelected",
+          rect: deviceScaledRegion,
+        })
+        .catch((error) => {
+          console.error("Failed to send region selection:", error);
+          // Alert user since they're waiting for popup that won't open
+          // This is a last resort when extension context is invalidated
+          window.alert(
+            "PrivateOCR: Failed to capture region. Please try again or reload the extension."
+          );
+        });
+    });
   }
 
   function handleKeyDown(event) {
@@ -206,11 +227,20 @@
    */
   function cleanup() {
     window.__ocrRegionSelectorActive = false;
+    // Release pointer capture if still held
+    if (activePointerId !== null && selectionOverlay) {
+      try {
+        selectionOverlay.releasePointerCapture(activePointerId);
+      } catch {
+        // Ignore - pointer may already be released
+      }
+      activePointerId = null;
+    }
     if (selectionOverlay) selectionOverlay.remove();
     if (selectionBox) selectionBox.remove();
     if (instructionsPanel) instructionsPanel.remove();
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("mouseup", handleMouseUp);
+    document.removeEventListener("pointermove", handlePointerMove);
+    document.removeEventListener("pointerup", handlePointerUp);
     document.removeEventListener("keydown", handleKeyDown);
   }
 

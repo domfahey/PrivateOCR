@@ -39,7 +39,9 @@
 
 - The overlay only calls `preventDefault` on mouse events, so page-level handlers still run; site scripts can intercept selection gestures and interfere with or cancel the overlay (`src/content.js:63`, `src/content.js:75`, `src/content.js:93`).
 - Releasing the mouse outside the browser window never triggers `mouseup`, leaving the overlay stuck on-screen until refresh (`src/content.js:57`).
+- When the popup is opened in region mode, `chrome.tabs.query({ active: true, currentWindow: true })` targets the popup window, so "Capture Tab" OCRs the popup itself instead of the original page (`src/popup-logic.js:422`).
 - Image zoom-out/in never clears `max-height: 100%`, so large/tall images stay constrained to the preview pane and zooming can appear to do nothing (`src/popup-logic.js:94`, `src/styles.css:175`).
+- Text zoom baseline is `14px` while `.md-text-field` is `16px`, so the first zoom-in has no visible effect (`src/popup-logic.js:59`, `src/styles.css:357`).
 - Text zoom size is not reset between OCR runs, so once you zoom, every future session starts at the altered size with no reset control (`src/popup-logic.js:111`).
 - `updateStatus` logs every status via `console.log`, including OCR progress; this can expose user activity timing in shared logs and conflicts with "no logging" expectations (`src/popup-logic.js:206`).
 - The progress-bar hide timeout isn't cleared between runs, so a previous `setTimeout` can remove the active bar during a new OCR session (`src/popup-logic.js:195`).
@@ -49,9 +51,9 @@
 - Tesseract logger calls `updateStatus(m.status)` without `progress`, so the UI hides the progress bar even while OCR is still active for statuses not in the whitelist (`src/popup-logic.js:256`, `src/popup-logic.js:219`).
 - `chrome.windows.create` isn't awaited inside `handleRegionSelection`, so any failure to open the popup won't be caught and surfaced to the user (`src/background.js:107`).
 - `updatePreview` assumes `previewImage` exists; if `init` is called with missing elements, `previewImage.src` will throw (`src/popup-logic.js:74`).
+- `screenshotBtn`, `regionBtn`, and `copyBtn` listeners are attached without null checks, so any DOM mismatch or future HTML change will throw and break popup initialization (`src/popup-logic.js:569`).
 - `checkRegionMode` silently does nothing if `pendingRegionOcr` is missing, leaving the popup in "Ready" without explaining that the region data expired or was cleared (`src/popup-logic.js:630`).
 - Cancelling during screenshot capture or scaling isn't honored because `getWorker` resets `isCancelled` and there are no cancellation checks before `runOcrOnFile` (`src/popup-logic.js:243`, `src/popup-logic.js:475`).
-- Auto-copy happens after OCR completes, but the manifest lacks `clipboardWrite`; without an active user gesture, `navigator.clipboard.writeText` is likely rejected, so auto-copy silently fails despite the UI promise (`src/popup-logic.js:396`, `manifest.json:24`).
 - Region captures can include the dark overlay/selection box because the content script removes the overlay and immediately triggers capture, without waiting for a repaint before `captureVisibleTab` runs (`src/content.js:183`, `src/background.js:86`).
 - Storing full screenshot data URLs in `chrome.storage.local` can exceed the default quota on high-DPI screens; without `unlimitedStorage`, region capture can fail before the popup opens (`src/background.js:97`, `manifest.json:24`).
 - `chrome.runtime.onMessage` returns `true` for `"regionSelected"` but never calls `sendResponse`, so the `chrome.runtime.sendMessage` Promise in the content script rejects with "message port closed" errors even when capture succeeds (`src/background.js:44`, `src/content.js:187`).

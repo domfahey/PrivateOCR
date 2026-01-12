@@ -38,11 +38,21 @@ async function cleanupStaleData() {
 // Run cleanup on service worker startup
 cleanupStaleData();
 
+// Set up periodic cleanup using alarms API (every 5 minutes)
+// This ensures stale data is cleaned up even if the popup never opens
+chrome.alarms.create("cleanupStaleData", { periodInMinutes: 5 });
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "cleanupStaleData") {
+    cleanupStaleData();
+  }
+});
+
 /**
  * Listen for messages from content scripts.
  * Currently handles "regionSelected" messages from the region selection overlay.
  */
-chrome.runtime.onMessage.addListener((message, sender, _sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "regionSelected") {
     // Validate sender.tab exists before processing
     if (!sender?.tab) {
@@ -53,8 +63,11 @@ chrome.runtime.onMessage.addListener((message, sender, _sendResponse) => {
         title: "Capture Error",
         message: "Could not identify the source tab. Please try again.",
       });
+      sendResponse({ success: false, error: "No tab context" });
       return false;
     }
+    // Send immediate acknowledgment to prevent "message port closed" errors
+    sendResponse({ success: true, received: true });
     handleRegionSelection(sender.tab, message.rect);
     // Return true to indicate async response (keeps message channel open for MV3)
     return true;
@@ -106,6 +119,10 @@ async function handleRegionSelection(sourceTab, selectedRegion) {
       format: "png",
     });
 
+    // Clean up any previous region data before storing new capture
+    // This prevents storage quota issues on high-DPI screens with large screenshots
+    await chrome.storage.local.remove("pendingRegionOcr");
+
     // Store the capture data for the popup to retrieve
     // We use storage instead of URL parameters because data URLs can be very large
     // Include source tab info so the popup can capture from the original tab, not itself
@@ -122,7 +139,7 @@ async function handleRegionSelection(sourceTab, selectedRegion) {
     // Open the popup programmatically by opening a new window with popup.html
     // Note: chrome.action.openPopup() is not available in background service workers
     // Size must accommodate min-width: 780px and min-height: 580px from styles.css
-    chrome.windows.create({
+    await chrome.windows.create({
       url: chrome.runtime.getURL("src/popup.html") + "?regionMode=true",
       type: "popup",
       width: 800,

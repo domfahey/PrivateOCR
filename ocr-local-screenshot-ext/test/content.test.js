@@ -64,80 +64,85 @@ describe("Content Script - Region Selection", () => {
     });
   });
 
-  describe("Mouse Interaction", () => {
-    it("should create selection box on left-click mousedown", async () => {
+  describe("Pointer Interaction", () => {
+    it("should create selection box on left-click pointerdown", async () => {
       await import("../src/content.js");
 
       const overlay = document.querySelector('div[style*="cursor: crosshair"]');
 
-      const mousedownEvent = new MouseEvent("mousedown", {
+      const pointerdownEvent = new PointerEvent("pointerdown", {
         clientX: 100,
         clientY: 100,
         button: 0, // Left click
+        pointerId: 1,
         bubbles: true,
       });
-      overlay.dispatchEvent(mousedownEvent);
+      overlay.dispatchEvent(pointerdownEvent);
 
       const selectionBox = document.querySelector('div[style*="border: 2px dashed"]');
       expect(selectionBox).not.toBeNull();
       expect(selectionBox.style.display).toBe("block");
     });
 
-    it("should ignore right-click mousedown", async () => {
+    it("should ignore right-click pointerdown", async () => {
       await import("../src/content.js");
 
       const overlay = document.querySelector('div[style*="cursor: crosshair"]');
 
-      const mousedownEvent = new MouseEvent("mousedown", {
+      const pointerdownEvent = new PointerEvent("pointerdown", {
         clientX: 100,
         clientY: 100,
         button: 2, // Right click
+        pointerId: 1,
         bubbles: true,
       });
-      overlay.dispatchEvent(mousedownEvent);
+      overlay.dispatchEvent(pointerdownEvent);
 
       const selectionBox = document.querySelector('div[style*="border: 2px dashed"]');
       // Selection box should exist but not be visible (not triggered)
       expect(selectionBox.style.display).toBe("none");
     });
 
-    it("should ignore middle-click mousedown", async () => {
+    it("should ignore middle-click pointerdown", async () => {
       await import("../src/content.js");
 
       const overlay = document.querySelector('div[style*="cursor: crosshair"]');
 
-      const mousedownEvent = new MouseEvent("mousedown", {
+      const pointerdownEvent = new PointerEvent("pointerdown", {
         clientX: 100,
         clientY: 100,
         button: 1, // Middle click
+        pointerId: 1,
         bubbles: true,
       });
-      overlay.dispatchEvent(mousedownEvent);
+      overlay.dispatchEvent(pointerdownEvent);
 
       const selectionBox = document.querySelector('div[style*="border: 2px dashed"]');
       // Selection box should exist but not be visible (not triggered)
       expect(selectionBox.style.display).toBe("none");
     });
 
-    it("should update selection box on mousemove", async () => {
+    it("should update selection box on pointermove", async () => {
       await import("../src/content.js");
 
       const overlay = document.querySelector('div[style*="cursor: crosshair"]');
 
       // Start selection
       overlay.dispatchEvent(
-        new MouseEvent("mousedown", {
+        new PointerEvent("pointerdown", {
           clientX: 100,
           clientY: 100,
+          pointerId: 1,
           bubbles: true,
         })
       );
 
-      // Move mouse
+      // Move pointer
       document.dispatchEvent(
-        new MouseEvent("mousemove", {
+        new PointerEvent("pointermove", {
           clientX: 200,
           clientY: 200,
+          pointerId: 1,
           bubbles: true,
         })
       );
@@ -155,18 +160,20 @@ describe("Content Script - Region Selection", () => {
 
       // Start selection
       overlay.dispatchEvent(
-        new MouseEvent("mousedown", {
+        new PointerEvent("pointerdown", {
           clientX: 100,
           clientY: 100,
+          pointerId: 1,
           bubbles: true,
         })
       );
 
       // End selection with valid size (> 10px)
       document.dispatchEvent(
-        new MouseEvent("mouseup", {
+        new PointerEvent("pointerup", {
           clientX: 200,
           clientY: 200,
+          pointerId: 1,
           bubbles: true,
         })
       );
@@ -191,18 +198,20 @@ describe("Content Script - Region Selection", () => {
 
       // Start selection
       overlay.dispatchEvent(
-        new MouseEvent("mousedown", {
+        new PointerEvent("pointerdown", {
           clientX: 100,
           clientY: 100,
+          pointerId: 1,
           bubbles: true,
         })
       );
 
       // End with tiny selection (< 10px)
       document.dispatchEvent(
-        new MouseEvent("mouseup", {
+        new PointerEvent("pointerup", {
           clientX: 105,
           clientY: 105,
+          pointerId: 1,
           bubbles: true,
         })
       );
@@ -222,18 +231,20 @@ describe("Content Script - Region Selection", () => {
 
       // Start selection
       overlay.dispatchEvent(
-        new MouseEvent("mousedown", {
+        new PointerEvent("pointerdown", {
           clientX: 100,
           clientY: 100,
+          pointerId: 1,
           bubbles: true,
         })
       );
 
       // End with tiny selection (< 10px)
       document.dispatchEvent(
-        new MouseEvent("mouseup", {
+        new PointerEvent("pointerup", {
           clientX: 105,
           clientY: 105,
+          pointerId: 1,
           bubbles: true,
         })
       );
@@ -257,17 +268,19 @@ describe("Content Script - Region Selection", () => {
 
       // Complete a selection
       overlay.dispatchEvent(
-        new MouseEvent("mousedown", {
+        new PointerEvent("pointerdown", {
           clientX: 100,
           clientY: 100,
+          pointerId: 1,
           bubbles: true,
         })
       );
 
       document.dispatchEvent(
-        new MouseEvent("mouseup", {
+        new PointerEvent("pointerup", {
           clientX: 200,
           clientY: 200,
+          pointerId: 1,
           bubbles: true,
         })
       );
@@ -370,18 +383,20 @@ describe("Content Script - Region Selection", () => {
 
       // Start selection at edge of viewport
       overlay.dispatchEvent(
-        new MouseEvent("mousedown", {
+        new PointerEvent("pointerdown", {
           clientX: 95,
           clientY: 95,
+          pointerId: 1,
           bubbles: true,
         })
       );
 
       // End selection beyond viewport - after clamping width/height will be 5x5 (< 10)
       document.dispatchEvent(
-        new MouseEvent("mouseup", {
+        new PointerEvent("pointerup", {
           clientX: 120,
           clientY: 120,
+          pointerId: 1,
           bubbles: true,
         })
       );
@@ -431,17 +446,19 @@ describe("Content Script - Region Selection", () => {
 
       // Complete a valid selection
       overlay.dispatchEvent(
-        new MouseEvent("mousedown", {
+        new PointerEvent("pointerdown", {
           clientX: 100,
           clientY: 100,
+          pointerId: 1,
           bubbles: true,
         })
       );
 
       document.dispatchEvent(
-        new MouseEvent("mouseup", {
+        new PointerEvent("pointerup", {
           clientX: 200,
           clientY: 200,
+          pointerId: 1,
           bubbles: true,
         })
       );
@@ -476,18 +493,20 @@ describe("Content Script - Region Selection", () => {
 
       // Start selection
       overlay.dispatchEvent(
-        new MouseEvent("mousedown", {
+        new PointerEvent("pointerdown", {
           clientX: 100,
           clientY: 100,
+          pointerId: 1,
           bubbles: true,
         })
       );
 
       // End with tiny selection (< 10px)
       document.dispatchEvent(
-        new MouseEvent("mouseup", {
+        new PointerEvent("pointerup", {
           clientX: 105,
           clientY: 105,
+          pointerId: 1,
           bubbles: true,
         })
       );
@@ -549,17 +568,19 @@ describe("Content Script - Region Selection", () => {
       const overlay = document.querySelector('div[style*="cursor: crosshair"]');
 
       overlay.dispatchEvent(
-        new MouseEvent("mousedown", {
+        new PointerEvent("pointerdown", {
           clientX: 100,
           clientY: 100,
+          pointerId: 1,
           bubbles: true,
         })
       );
 
       document.dispatchEvent(
-        new MouseEvent("mouseup", {
+        new PointerEvent("pointerup", {
           clientX: 200,
           clientY: 200,
+          pointerId: 1,
           bubbles: true,
         })
       );
@@ -573,6 +594,139 @@ describe("Content Script - Region Selection", () => {
           }),
         })
       );
+    });
+  });
+
+  describe("Repaint Wait Before Capture", () => {
+    it("should wait for repaint using requestAnimationFrame before sending regionSelected", async () => {
+      await import("../src/content.js");
+
+      const rafSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+        cb(0);
+        return 0;
+      });
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      overlay.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          clientX: 100,
+          clientY: 100,
+          pointerId: 1,
+          bubbles: true,
+        })
+      );
+
+      document.dispatchEvent(
+        new PointerEvent("pointerup", {
+          clientX: 200,
+          clientY: 200,
+          pointerId: 1,
+          bubbles: true,
+        })
+      );
+
+      // requestAnimationFrame should be called to wait for repaint after overlay removal
+      expect(rafSpy).toHaveBeenCalled();
+
+      // sendMessage should still be called (inside the RAF callback)
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "regionSelected",
+        })
+      );
+
+      rafSpy.mockRestore();
+    });
+  });
+
+  describe("Pointer Capture for Outside Window Release", () => {
+    it("should use setPointerCapture when selection starts", async () => {
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      // Mock setPointerCapture
+      overlay.setPointerCapture = vi.fn();
+
+      const pointerdownEvent = new PointerEvent("pointerdown", {
+        clientX: 100,
+        clientY: 100,
+        button: 0,
+        pointerId: 1,
+        bubbles: true,
+      });
+      overlay.dispatchEvent(pointerdownEvent);
+
+      expect(overlay.setPointerCapture).toHaveBeenCalledWith(1);
+    });
+
+    it("should release pointer capture when selection ends", async () => {
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      // Mock pointer capture methods
+      overlay.setPointerCapture = vi.fn();
+      overlay.releasePointerCapture = vi.fn();
+
+      // Start selection
+      overlay.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          clientX: 100,
+          clientY: 100,
+          button: 0,
+          pointerId: 1,
+          bubbles: true,
+        })
+      );
+
+      // End selection
+      document.dispatchEvent(
+        new PointerEvent("pointerup", {
+          clientX: 200,
+          clientY: 200,
+          pointerId: 1,
+          bubbles: true,
+        })
+      );
+
+      expect(overlay.releasePointerCapture).toHaveBeenCalledWith(1);
+    });
+
+    it("should handle pointerup events even when released outside window (via capture)", async () => {
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      // Mock pointer capture methods
+      overlay.setPointerCapture = vi.fn();
+      overlay.releasePointerCapture = vi.fn();
+
+      // Start selection
+      overlay.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          clientX: 100,
+          clientY: 100,
+          button: 0,
+          pointerId: 1,
+          bubbles: true,
+        })
+      );
+
+      // Simulate pointer up (with capture, this fires even if pointer is outside window)
+      document.dispatchEvent(
+        new PointerEvent("pointerup", {
+          clientX: 200,
+          clientY: 200,
+          pointerId: 1,
+          bubbles: true,
+        })
+      );
+
+      // Overlay should be cleaned up
+      const overlayAfter = document.querySelector('div[style*="cursor: crosshair"]');
+      expect(overlayAfter).toBeNull();
     });
   });
 });

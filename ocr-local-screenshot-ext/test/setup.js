@@ -35,6 +35,13 @@ const createChromeMock = () => ({
   notifications: {
     create: vi.fn().mockResolvedValue("notification-id"),
   },
+  alarms: {
+    create: vi.fn(),
+    onAlarm: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
+  },
 });
 
 // Mock Tesseract.js (v7 API)
@@ -53,6 +60,46 @@ const createTesseractMock = () => ({
     DEFAULT: 3,
   },
 });
+
+// Polyfill PointerEvent for jsdom (doesn't support it natively)
+if (typeof PointerEvent === "undefined") {
+  globalThis.PointerEvent = class PointerEvent extends MouseEvent {
+    constructor(type, params = {}) {
+      super(type, params);
+      this.pointerId = params.pointerId ?? 0;
+      this.width = params.width ?? 1;
+      this.height = params.height ?? 1;
+      this.pressure = params.pressure ?? 0;
+      this.tangentialPressure = params.tangentialPressure ?? 0;
+      this.tiltX = params.tiltX ?? 0;
+      this.tiltY = params.tiltY ?? 0;
+      this.twist = params.twist ?? 0;
+      this.pointerType = params.pointerType ?? "mouse";
+      this.isPrimary = params.isPrimary ?? true;
+    }
+  };
+}
+
+// Polyfill setPointerCapture/releasePointerCapture for jsdom elements
+if (!Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = function () {};
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = function () {};
+}
+
+// Mock requestAnimationFrame to execute callbacks synchronously for testing
+// (jsdom doesn't automatically execute RAF callbacks)
+if (typeof window !== "undefined" && !window._rafMocked) {
+  window._rafMocked = true;
+  const originalRaf = window.requestAnimationFrame;
+  window.requestAnimationFrame = function (callback) {
+    // Execute callback synchronously for tests, but still return an id
+    callback(performance.now());
+    return 0;
+  };
+  window.cancelAnimationFrame = function () {};
+}
 
 // Set up global mocks before each test
 beforeEach(() => {

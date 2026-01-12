@@ -21,7 +21,15 @@
       "128": "icons/icon128.png"
     }
   },
-  "permissions": ["activeTab", "scripting", "storage", "notifications"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "unlimitedStorage",
+    "notifications",
+    "clipboardWrite",
+    "alarms"
+  ],
   "host_permissions": [],
   "background": {
     "service_worker": "src/background.js"

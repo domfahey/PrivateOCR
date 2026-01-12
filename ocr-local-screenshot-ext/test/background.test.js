@@ -107,6 +107,31 @@ describe("Background Service Worker", () => {
 
       expect(chrome.tabs.captureVisibleTab).not.toHaveBeenCalled();
     });
+
+    it("should clear previous region data before storing new capture", async () => {
+      const mockTab = { id: 1, windowId: 1 };
+      const mockRect = { x: 0, y: 0, width: 100, height: 100 };
+
+      // Track call order
+      const callOrder = [];
+      chrome.storage.local.remove = vi.fn().mockImplementation(() => {
+        callOrder.push("remove");
+        return Promise.resolve();
+      });
+      chrome.storage.local.set = vi.fn().mockImplementation(() => {
+        callOrder.push("set");
+        return Promise.resolve();
+      });
+
+      messageHandler({ type: "regionSelected", rect: mockRect }, { tab: mockTab }, vi.fn());
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Remove should be called with pendingRegionOcr
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith("pendingRegionOcr");
+      // Remove should happen before set
+      expect(callOrder).toEqual(["remove", "set"]);
+    });
   });
 
   describe("Error Handling", () => {
@@ -231,6 +256,22 @@ describe("Background Service Worker", () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+    });
+
+    it("should create periodic alarm for cleanup", async () => {
+      vi.resetModules();
+      await import("../src/background.js");
+
+      expect(chrome.alarms.create).toHaveBeenCalledWith("cleanupStaleData", {
+        periodInMinutes: 5,
+      });
+    });
+
+    it("should register alarm listener for cleanup", async () => {
+      vi.resetModules();
+      await import("../src/background.js");
+
+      expect(chrome.alarms.onAlarm.addListener).toHaveBeenCalled();
     });
   });
 

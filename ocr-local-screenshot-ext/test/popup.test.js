@@ -282,16 +282,14 @@ describe("Popup Logic Integration", () => {
         resolveRecognize = resolve;
       });
       mockWorkerInstance.recognize.mockReturnValue(pendingPromise);
-      
-      elements.screenshotBtn.click();
-      
-      await Promise.resolve(); 
-      await Promise.resolve(); 
-      await Promise.resolve(); 
-      await vi.runAllTimers();
-      await Promise.resolve();
 
-      expect(elements.cancelBtn.style.display).toBe("flex"); 
+      elements.screenshotBtn.click();
+
+      // Wait until we're in the recognition phase (worker is created and running)
+      // This ensures the worker exists before we try to cancel
+      await flushAll();
+      expect(elements.statusEl.textContent).toBe("Recognizing...");
+      expect(elements.cancelBtn.style.display).toBe("flex");
 
       elements.cancelBtn.click();
       await flushAll();

@@ -75,6 +75,7 @@ export function init(elements) {
   }
 
   function updatePreview(dataUrl) {
+    if (!previewImage) return; // Guard against missing element
     currentImageDataUrl = dataUrl;
 
     if (dataUrl) {
@@ -101,10 +102,12 @@ export function init(elements) {
 
     if (isImgFit) {
       previewImage.style.maxWidth = "100%";
+      previewImage.style.maxHeight = "100%";
       previewImage.style.width = "auto";
       previewImage.style.height = "auto";
     } else {
       previewImage.style.maxWidth = "none";
+      previewImage.style.maxHeight = "none";
       previewImage.style.height = "auto";
       const baseWidth = previewImage.naturalWidth || previewImage.width || 800;
       previewImage.style.width = `${baseWidth * imgScale}px`;
@@ -233,7 +236,7 @@ export function init(elements) {
         progressIndicator.style.width = "0%";
       }
     }
-    console.log(msg);
+    // Note: Intentionally not logging status messages for privacy
   }
 
   /**
@@ -263,7 +266,9 @@ export function init(elements) {
             if (typeof m.progress === "number") {
               updateStatus(`${m.status} ${(m.progress * 100).toFixed(0)}%`, m.progress);
             } else {
-              updateStatus(m.status);
+              // Pass a progress value to keep progress bar visible during Tesseract operations
+              // even for statuses without explicit progress numbers
+              updateStatus(m.status, 0.5);
             }
           }
         },
@@ -436,9 +441,24 @@ export function init(elements) {
     setProcessing(true);
     try {
       outputEl.value = "";
+      // Reset text zoom to default for new OCR
+      textSize = 15;
+      applyTextZoom();
       updateStatus("Capturing screenshot...");
       const { file, dataUrl } = await captureCurrentTabAsFile();
+      // Check cancellation after capture
+      if (isCancelled) {
+        setProcessing(false);
+        updateStatus("Cancelled");
+        return;
+      }
       updatePreview(dataUrl);
+      // Check cancellation before OCR
+      if (isCancelled) {
+        setProcessing(false);
+        updateStatus("Cancelled");
+        return;
+      }
       await runOcrOnFile(file);
     } catch (err) {
       if (isCancelled || (err && err.message === "Cancelled")) {
@@ -504,19 +524,40 @@ export function init(elements) {
     isCancelled = false;
     operationId++;
     setProcessing(true);
+    // Reset text zoom to default for new OCR
+    textSize = 15;
+    applyTextZoom();
     try {
       updateStatus("Cropping region...");
       const { dataUrl: croppedDataUrl } = await cropImageToRegion(dataUrl, rect);
+      // Check cancellation after cropping
+      if (isCancelled) {
+        setProcessing(false);
+        updateStatus("Cancelled");
+        return;
+      }
 
       // Scale down if the cropped region is too large
       const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(croppedDataUrl);
       if (scaled) {
         updateStatus("Scaling large image...");
       }
+      // Check cancellation after scaling
+      if (isCancelled) {
+        setProcessing(false);
+        updateStatus("Cancelled");
+        return;
+      }
 
       updatePreview(processedUrl);
       const blob = dataUrlToBlob(processedUrl);
       const file = new File([blob], "region.png", { type: blob.type });
+      // Check cancellation before OCR
+      if (isCancelled) {
+        setProcessing(false);
+        updateStatus("Cancelled");
+        return;
+      }
       await runOcrOnFile(file);
     } catch (err) {
       if (isCancelled || (err && err.message === "Cancelled")) {
@@ -622,6 +663,9 @@ export function init(elements) {
           console.error("Error processing region:", err);
           updateStatus("Error processing region: " + (err.message || String(err)));
         }
+      } else {
+        // Region data is missing - inform user
+        updateStatus("Region data not found. Please try again.");
       }
     }
   }
