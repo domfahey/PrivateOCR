@@ -30,7 +30,8 @@ async function cleanupStaleData() {
       }
     }
   } catch (err) {
-    // Ignore cleanup errors
+    // Log cleanup errors but don't fail - this is non-critical maintenance
+    console.warn("Stale data cleanup failed (non-critical):", err.message);
   }
 }
 

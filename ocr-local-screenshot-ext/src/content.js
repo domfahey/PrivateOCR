@@ -141,8 +141,9 @@
           type: "regionCancelled",
           reason: "tooSmall",
         })
-        .catch(() => {
-          // Ignore errors if background script is not listening
+        .catch((err) => {
+          // Log cancellation errors but don't alert - user already sees overlay close
+          console.warn("Failed to send cancellation message (non-critical):", err.message);
         });
       cleanup();
       return;
@@ -171,7 +172,9 @@
         console.error("Failed to send region selection:", error);
         // Alert user since they're waiting for popup that won't open
         // This is a last resort when extension context is invalidated
-        window.alert("PrivateOCR: Failed to capture region. Please try again or reload the extension.");
+        window.alert(
+          "PrivateOCR: Failed to capture region. Please try again or reload the extension."
+        );
       });
   }
 
@@ -183,8 +186,9 @@
           type: "regionCancelled",
           reason: "escape",
         })
-        .catch(() => {
-          // Ignore errors if background script is not listening
+        .catch((err) => {
+          // Log cancellation errors but don't alert - user already sees overlay close
+          console.warn("Failed to send cancellation message (non-critical):", err.message);
         });
       cleanup();
     }

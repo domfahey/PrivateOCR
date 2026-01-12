@@ -204,6 +204,22 @@ describe("Background Service Worker", () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
+    it("should log warning when cleanup fails", async () => {
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      chrome.storage.local.get.mockRejectedValueOnce(new Error("Storage unavailable"));
+
+      vi.resetModules();
+      await import("../src/background.js");
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("cleanup"),
+        expect.stringContaining("Storage unavailable")
+      );
+      consoleSpy.mockRestore();
+    });
+
     it("should not clean up when no pending data exists", async () => {
       // No pending data
       chrome.storage.local.get.mockResolvedValueOnce({});

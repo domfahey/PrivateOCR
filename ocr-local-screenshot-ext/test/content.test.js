@@ -378,6 +378,84 @@ describe("Content Script - Region Selection", () => {
     });
   });
 
+  describe("Cancellation Message Failure Handling", () => {
+    it("should log warning when tooSmall cancellation message fails", async () => {
+      while (document.body.firstChild) {
+        document.body.removeChild(document.body.firstChild);
+      }
+      delete window.__ocrRegionSelectorActive;
+      vi.resetModules();
+
+      Object.defineProperty(window, "innerWidth", { value: 1024, writable: true });
+      Object.defineProperty(window, "innerHeight", { value: 768, writable: true });
+
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      chrome.runtime.sendMessage = vi.fn().mockRejectedValue(new Error("Extension context invalidated"));
+
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      // Start selection
+      overlay.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 100,
+          clientY: 100,
+          bubbles: true,
+        })
+      );
+
+      // End with tiny selection (< 10px)
+      document.dispatchEvent(
+        new MouseEvent("mouseup", {
+          clientX: 105,
+          clientY: 105,
+          bubbles: true,
+        })
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("cancellation"),
+        expect.any(String)
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it("should log warning when escape cancellation message fails", async () => {
+      while (document.body.firstChild) {
+        document.body.removeChild(document.body.firstChild);
+      }
+      delete window.__ocrRegionSelectorActive;
+      vi.resetModules();
+
+      Object.defineProperty(window, "innerWidth", { value: 1024, writable: true });
+      Object.defineProperty(window, "innerHeight", { value: 768, writable: true });
+
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      chrome.runtime.sendMessage = vi.fn().mockRejectedValue(new Error("Extension context invalidated"));
+
+      await import("../src/content.js");
+
+      // Press Escape
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Escape",
+          bubbles: true,
+        })
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("cancellation"),
+        expect.any(String)
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe("Device Pixel Ratio Handling", () => {
     it("should account for devicePixelRatio in rect coordinates", async () => {
       // Mock devicePixelRatio and viewport dimensions

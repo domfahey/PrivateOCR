@@ -181,6 +181,19 @@ describe("Popup Logic Integration", () => {
         expect(elements.previewImage.style.display).toBe("block");
         expect(elements.emptyImageState.style.display).toBe("none");
     });
+
+    it("should show feedback when auto-copy fails after OCR", async () => {
+      vi.clearAllMocks();
+
+      // Mock clipboard to fail
+      navigator.clipboard.writeText = vi.fn().mockRejectedValue(new Error("Clipboard blocked"));
+
+      elements.screenshotBtn.click();
+      await flushAll();
+
+      // Status should indicate clipboard failure along with OCR results
+      expect(elements.statusEl.textContent).toContain("clipboard failed");
+    });
   });
 
   describe("Zoom Controls", () => {
@@ -285,6 +298,37 @@ describe("Popup Logic Integration", () => {
 
       expect(mockWorkerInstance.terminate).toHaveBeenCalled();
       expect(elements.statusEl.textContent).toBe("Cancelled");
+    });
+
+    it("should log warning when worker termination fails", async () => {
+      vi.clearAllMocks();
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      let resolveRecognize;
+      const pendingPromise = new Promise((resolve) => {
+        resolveRecognize = resolve;
+      });
+      mockWorkerInstance.recognize.mockReturnValue(pendingPromise);
+      mockWorkerInstance.terminate.mockRejectedValueOnce(new Error("Worker already terminated"));
+
+      elements.screenshotBtn.click();
+
+      // Wait for async operations to complete and worker to be initialized
+      // The worker is ready when status shows "Recognizing..." (after worker init, before recognize completes)
+      await flushAll();
+
+      // Verify we're in the recognizing state (worker is initialized)
+      expect(elements.statusEl.textContent).toBe("Recognizing...");
+      expect(elements.cancelBtn.style.display).toBe("flex");
+
+      elements.cancelBtn.click();
+      await flushAll();
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("terminate"),
+        expect.any(String)
+      );
+      consoleSpy.mockRestore();
     });
   });
 
@@ -611,7 +655,7 @@ describe("Popup Logic Integration", () => {
         await flushAll();
 
         expect(consoleSpy).toHaveBeenCalledWith("Error loading region data:", expect.any(Error));
-        expect(elements.statusEl.textContent).toContain("Error");
+        expect(elements.statusEl.textContent).toBe("Error: Unable to load region data from storage");
 
         consoleSpy.mockRestore();
         Object.defineProperty(window, "location", {

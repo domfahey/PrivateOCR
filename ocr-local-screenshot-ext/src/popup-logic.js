@@ -297,7 +297,8 @@ export function init(elements) {
       try {
         await currentWorker.terminate();
       } catch (err) {
-        // Ignore termination errors
+        // Log termination errors but don't block cancellation
+        console.warn("Worker terminate failed (non-critical):", err.message);
       }
     }
     workerPromise = null;
@@ -337,7 +338,7 @@ export function init(elements) {
         if (copied) {
           updateStatus(`Done - ${wordCount} words, ${charCount} chars (copied to clipboard)`);
         } else {
-          updateStatus(`Done - ${wordCount} words, ${charCount} chars`);
+          updateStatus(`Done - ${wordCount} words, ${charCount} chars (clipboard failed)`);
         }
       } else {
         updateStatus("Done - no text found");
@@ -593,16 +594,20 @@ export function init(elements) {
       isRegionModePopup = true;
       if (regionBtn) regionBtn.disabled = true;
 
+      let regionData;
       try {
         // Retrieve the captured data stored by the background script
         const result = await chrome.storage.local.get("pendingRegionOcr");
-        if (result.pendingRegionOcr) {
-          const {
-            dataUrl,
-            rect,
-            timestamp,
-            sourceWindowId: storedWindowId,
-          } = result.pendingRegionOcr;
+        regionData = result.pendingRegionOcr;
+      } catch (err) {
+        console.error("Error loading region data:", err);
+        updateStatus("Error: Unable to load region data from storage");
+        return;
+      }
+
+      if (regionData) {
+        try {
+          const { dataUrl, rect, timestamp, sourceWindowId: storedWindowId } = regionData;
           // Store source window ID for future captures in this popup
           sourceWindowId = storedWindowId;
           // Clean up storage immediately
@@ -613,10 +618,10 @@ export function init(elements) {
           } else {
             updateStatus("Region data expired, please try again");
           }
+        } catch (err) {
+          console.error("Error processing region:", err);
+          updateStatus("Error processing region: " + (err.message || String(err)));
         }
-      } catch (err) {
-        console.error("Error loading region data:", err);
-        updateStatus("Error: " + (err.message || String(err)));
       }
     }
   }
