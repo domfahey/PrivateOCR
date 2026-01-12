@@ -570,54 +570,60 @@ export function init(elements) {
     }
   }
 
-  screenshotBtn.addEventListener("click", () => {
-    handleScreenshotClick();
-  });
+  if (screenshotBtn) {
+    screenshotBtn.addEventListener("click", () => {
+      handleScreenshotClick();
+    });
+  }
 
-  regionBtn.addEventListener("click", () => {
-    handleRegionClick();
-  });
+  if (regionBtn) {
+    regionBtn.addEventListener("click", () => {
+      handleRegionClick();
+    });
+  }
 
-  copyBtn.addEventListener("click", async () => {
-    const text = outputEl.value || "";
-    if (!text.trim()) {
-      updateStatus("No text to copy");
-      return;
-    }
-    const copied = await copyToClipboard(text);
-    if (copied) {
-      updateStatus("Copied to clipboard");
-
-      // Cancel any pending timeout to prevent race condition on rapid clicks
-      if (copyButtonTimeoutId) {
-        clearTimeout(copyButtonTimeoutId);
-        copyButtonTimeoutId = null;
+  if (copyBtn) {
+    copyBtn.addEventListener("click", async () => {
+      const text = outputEl.value || "";
+      if (!text.trim()) {
+        updateStatus("No text to copy");
+        return;
       }
+      const copied = await copyToClipboard(text);
+      if (copied) {
+        updateStatus("Copied to clipboard");
 
-      // Store original HTML only once (before first click changes it)
-      if (!copyButtonOriginalHtml) {
-        copyButtonOriginalHtml = copyBtn.innerHTML;
+        // Cancel any pending timeout to prevent race condition on rapid clicks
+        if (copyButtonTimeoutId) {
+          clearTimeout(copyButtonTimeoutId);
+          copyButtonTimeoutId = null;
+        }
+
+        // Store original HTML only once (before first click changes it)
+        if (!copyButtonOriginalHtml) {
+          copyButtonOriginalHtml = copyBtn.innerHTML;
+        }
+
+        // Visual feedback
+        // Note: innerHTML is safe here as content is static/hardcoded, not user input
+        copyBtn.innerHTML = `
+          <span class="icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+          </span>
+          <span>Copied!</span>
+        `;
+
+        copyButtonTimeoutId = setTimeout(() => {
+          copyBtn.innerHTML = copyButtonOriginalHtml;
+          copyButtonTimeoutId = null;
+        }, 2000);
+      } else {
+        updateStatus("Could not copy to clipboard");
       }
-
-      // Visual feedback
-      // Note: innerHTML is safe here as content is static/hardcoded, not user input
-      copyBtn.innerHTML = `
-        <span class="icon">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-          </svg>
-        </span>
-        <span>Copied!</span>
-      `;
-
-      copyButtonTimeoutId = setTimeout(() => {
-        copyBtn.innerHTML = copyButtonOriginalHtml;
-        copyButtonTimeoutId = null;
-      }, 2000);
-    } else {
-      updateStatus("Could not copy to clipboard");
-    }
-  });
+    });
+  }
 
   if (cancelBtn) {
     cancelBtn.addEventListener("click", cancelOcr);
@@ -626,6 +632,7 @@ export function init(elements) {
   /**
    * Check if the popup was opened in "region mode".
    * This happens when the background script re-opens the popup after a region is selected.
+   * Also cleans up any stale region data when opened normally.
    */
   async function checkRegionMode() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -666,6 +673,14 @@ export function init(elements) {
       } else {
         // Region data is missing - inform user
         updateStatus("Region data not found. Please try again.");
+      }
+    } else {
+      // Normal popup open (not region mode) - clean up any stale region data
+      // This prevents screenshot data from lingering in storage indefinitely
+      try {
+        await chrome.storage.local.remove("pendingRegionOcr");
+      } catch {
+        // Ignore cleanup errors - non-critical
       }
     }
   }

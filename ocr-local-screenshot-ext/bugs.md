@@ -53,7 +53,9 @@
 - ~~`chrome.runtime.onMessage` returns `true` for `"regionSelected"` but never calls `sendResponse`, so the `chrome.runtime.sendMessage` Promise in the content script rejects with "message port closed" errors even when capture succeeds (`src/background.js`, `src/content.js`).~~ **FIXED**: Added `sendResponse({ success: true, received: true });` before calling `handleRegionSelection`.
 - ~~Auto-copy can fail silently without `clipboardWrite` permission when there's no active user gesture (`manifest.json`).~~ **FIXED**: Added `clipboardWrite` permission to manifest.json.
 
+- ~~`screenshotBtn`, `regionBtn`, and `copyBtn` listeners are attached without null checks, so any DOM mismatch or future HTML change will throw and break popup initialization (`src/popup-logic.js:569`).~~ **FIXED**: Added null checks before attaching event listeners to `screenshotBtn`, `regionBtn`, and `copyBtn`.
+- ~~Pending region data is never cleared if the popup is opened without `?regionMode=true`, so stale captures can linger until the service worker restarts (`src/popup-logic.js:626`).~~ **FIXED**: Added cleanup of `pendingRegionOcr` when popup opens without `?regionMode=true`.
+
 ## Open
 
-- `screenshotBtn`, `regionBtn`, and `copyBtn` listeners are attached without null checks, so any DOM mismatch or future HTML change will throw and break popup initialization (`src/popup-logic.js:569`).
-- Pending region data is never cleared if the popup is opened without `?regionMode=true`, so stale captures can linger until the service worker restarts (`src/popup-logic.js:626`).
+None - all known bugs have been fixed!
