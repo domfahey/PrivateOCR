@@ -49,10 +49,23 @@ describe("Content Script - Region Selection", () => {
       const instructions = document.body.textContent;
       expect(instructions).toContain("Click and drag");
     });
+
+    it("should allow clicks through instruction banner", async () => {
+      await import("../src/content.js");
+
+      // Find the instruction panel
+      const instructionsPanel = Array.from(document.querySelectorAll("div")).find(
+        (el) => el.textContent.includes("Click and drag")
+      );
+
+      expect(instructionsPanel).not.toBeNull();
+      // pointer-events: none allows clicks to pass through to overlay
+      expect(instructionsPanel.style.pointerEvents).toBe("none");
+    });
   });
 
   describe("Mouse Interaction", () => {
-    it("should create selection box on mousedown", async () => {
+    it("should create selection box on left-click mousedown", async () => {
       await import("../src/content.js");
 
       const overlay = document.querySelector('div[style*="cursor: crosshair"]');
@@ -60,12 +73,50 @@ describe("Content Script - Region Selection", () => {
       const mousedownEvent = new MouseEvent("mousedown", {
         clientX: 100,
         clientY: 100,
+        button: 0, // Left click
         bubbles: true,
       });
       overlay.dispatchEvent(mousedownEvent);
 
       const selectionBox = document.querySelector('div[style*="border: 2px dashed"]');
       expect(selectionBox).not.toBeNull();
+      expect(selectionBox.style.display).toBe("block");
+    });
+
+    it("should ignore right-click mousedown", async () => {
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      const mousedownEvent = new MouseEvent("mousedown", {
+        clientX: 100,
+        clientY: 100,
+        button: 2, // Right click
+        bubbles: true,
+      });
+      overlay.dispatchEvent(mousedownEvent);
+
+      const selectionBox = document.querySelector('div[style*="border: 2px dashed"]');
+      // Selection box should exist but not be visible (not triggered)
+      expect(selectionBox.style.display).toBe("none");
+    });
+
+    it("should ignore middle-click mousedown", async () => {
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      const mousedownEvent = new MouseEvent("mousedown", {
+        clientX: 100,
+        clientY: 100,
+        button: 1, // Middle click
+        bubbles: true,
+      });
+      overlay.dispatchEvent(mousedownEvent);
+
+      const selectionBox = document.querySelector('div[style*="border: 2px dashed"]');
+      // Selection box should exist but not be visible (not triggered)
+      expect(selectionBox.style.display).toBe("none");
     });
 
     it("should update selection box on mousemove", async () => {
@@ -244,6 +295,33 @@ describe("Content Script - Region Selection", () => {
       expect(overlay).toBeNull();
     });
 
+    it("should stop propagation on Escape to prevent page handlers", async () => {
+      await import("../src/content.js");
+
+      // Set up a listener to track if propagation was stopped
+      let pageHandlerCalled = false;
+      const pageHandler = () => {
+        pageHandlerCalled = true;
+      };
+      document.addEventListener("keydown", pageHandler);
+
+      // Create and dispatch Escape event
+      const escapeEvent = new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      });
+
+      // Track if stopPropagation was called
+      const stopPropSpy = vi.spyOn(escapeEvent, "stopPropagation");
+
+      document.dispatchEvent(escapeEvent);
+
+      expect(stopPropSpy).toHaveBeenCalled();
+
+      document.removeEventListener("keydown", pageHandler);
+    });
+
     it("should reset __ocrRegionSelectorActive flag on cancel", async () => {
       await import("../src/content.js");
 
@@ -322,6 +400,137 @@ describe("Content Script - Region Selection", () => {
           type: "regionSelected",
         })
       );
+    });
+  });
+
+  describe("Message Send Failure Handling", () => {
+    it("should show alert when regionSelected message fails to send", async () => {
+      // Clean up from previous tests - use DOM methods instead of innerHTML
+      while (document.body.firstChild) {
+        document.body.removeChild(document.body.firstChild);
+      }
+      delete window.__ocrRegionSelectorActive;
+      vi.resetModules();
+
+      // Reset viewport dimensions (previous test may have changed them)
+      Object.defineProperty(window, "innerWidth", { value: 1024, writable: true });
+      Object.defineProperty(window, "innerHeight", { value: 768, writable: true });
+
+      // Mock sendMessage to reject BEFORE module import
+      chrome.runtime.sendMessage = vi.fn().mockRejectedValue(new Error("Extension context invalidated"));
+
+      // Mock window.alert
+      const alertMock = vi.fn();
+      window.alert = alertMock;
+
+      // Import after mocks are set up
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+      expect(overlay).not.toBeNull();
+
+      // Complete a valid selection
+      overlay.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 100,
+          clientY: 100,
+          bubbles: true,
+        })
+      );
+
+      document.dispatchEvent(
+        new MouseEvent("mouseup", {
+          clientX: 200,
+          clientY: 200,
+          bubbles: true,
+        })
+      );
+
+      // Wait for async error handling
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Should show alert to user when message fails
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("PrivateOCR")
+      );
+    });
+  });
+
+  describe("Cancellation Message Failure Handling", () => {
+    it("should log warning when tooSmall cancellation message fails", async () => {
+      while (document.body.firstChild) {
+        document.body.removeChild(document.body.firstChild);
+      }
+      delete window.__ocrRegionSelectorActive;
+      vi.resetModules();
+
+      Object.defineProperty(window, "innerWidth", { value: 1024, writable: true });
+      Object.defineProperty(window, "innerHeight", { value: 768, writable: true });
+
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      chrome.runtime.sendMessage = vi.fn().mockRejectedValue(new Error("Extension context invalidated"));
+
+      await import("../src/content.js");
+
+      const overlay = document.querySelector('div[style*="cursor: crosshair"]');
+
+      // Start selection
+      overlay.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 100,
+          clientY: 100,
+          bubbles: true,
+        })
+      );
+
+      // End with tiny selection (< 10px)
+      document.dispatchEvent(
+        new MouseEvent("mouseup", {
+          clientX: 105,
+          clientY: 105,
+          bubbles: true,
+        })
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("cancellation"),
+        expect.any(String)
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it("should log warning when escape cancellation message fails", async () => {
+      while (document.body.firstChild) {
+        document.body.removeChild(document.body.firstChild);
+      }
+      delete window.__ocrRegionSelectorActive;
+      vi.resetModules();
+
+      Object.defineProperty(window, "innerWidth", { value: 1024, writable: true });
+      Object.defineProperty(window, "innerHeight", { value: 768, writable: true });
+
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      chrome.runtime.sendMessage = vi.fn().mockRejectedValue(new Error("Extension context invalidated"));
+
+      await import("../src/content.js");
+
+      // Press Escape
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Escape",
+          bubbles: true,
+        })
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("cancellation"),
+        expect.any(String)
+      );
+      consoleSpy.mockRestore();
     });
   });
 

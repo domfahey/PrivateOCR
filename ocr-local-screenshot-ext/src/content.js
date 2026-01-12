@@ -65,6 +65,7 @@
       font-family: system-ui, sans-serif;
       font-size: 14px;
       z-index: 2147483647;
+      pointer-events: none;
     `;
     instructionsPanel.textContent = "Click and drag to select a region. Press Escape to cancel.";
 
@@ -79,6 +80,8 @@
   }
 
   function handleMouseDown(event) {
+    // Only respond to left-click (button 0), ignore right-click (2) and middle-click (1)
+    if (event.button !== 0) return;
     event.preventDefault();
     isSelecting = true;
     selectionStartX = event.clientX;
@@ -141,8 +144,9 @@
           type: "regionCancelled",
           reason: "tooSmall",
         })
-        .catch(() => {
-          // Ignore errors if background script is not listening
+        .catch((err) => {
+          // Log cancellation errors but don't alert - user already sees overlay close
+          console.warn("Failed to send cancellation message (non-critical):", err.message);
         });
       cleanup();
       return;
@@ -169,19 +173,28 @@
       })
       .catch((error) => {
         console.error("Failed to send region selection:", error);
+        // Alert user since they're waiting for popup that won't open
+        // This is a last resort when extension context is invalidated
+        window.alert(
+          "PrivateOCR: Failed to capture region. Please try again or reload the extension."
+        );
       });
   }
 
   function handleKeyDown(event) {
     if (event.key === "Escape") {
+      // Prevent page handlers from also responding to Escape (e.g., closing modals)
+      event.preventDefault();
+      event.stopPropagation();
       // Notify background script that selection was cancelled by Escape
       chrome.runtime
         .sendMessage({
           type: "regionCancelled",
           reason: "escape",
         })
-        .catch(() => {
-          // Ignore errors if background script is not listening
+        .catch((err) => {
+          // Log cancellation errors but don't alert - user already sees overlay close
+          console.warn("Failed to send cancellation message (non-critical):", err.message);
         });
       cleanup();
     }
