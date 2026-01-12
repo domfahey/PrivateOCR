@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-01-12
+
+### Fixed
+
+- **Pointer Events**: Converted region selection from mouse events to Pointer Events API with `setPointerCapture()`, fixing stuck overlay when mouse is released outside browser window.
+- **Overlay in Screenshots**: Added `requestAnimationFrame()` delay before capturing to ensure selection overlay is visually removed from screenshots.
+- **Storage Quota**: Added `unlimitedStorage` permission to prevent quota errors on high-DPI screens; pre-clean storage before new captures.
+- **Settings UI**: Removed non-functional language dropdown; replaced with informational "OCR Engine" section.
+- **Progress Bar Timeout**: Added timeout tracking to prevent stale timeouts from hiding active progress bars.
+- **Tesseract Logger**: Fixed logger to always pass progress value (0.5) for statuses without explicit progress, keeping progress bar visible.
+- **Capture Errors**: Error handlers now reset progress bar state by calling `updateStatus` with progress 0.
+- **Text Zoom Reset**: Text zoom now resets to 15px at start of each new OCR operation.
+- **Image Zoom**: Added explicit `maxHeight` management in `applyImageZoom()` to fix zoom appearing broken on tall images.
+- **Cancellation**: Added cancellation checks after capture, crop, and scale operations for responsive cancel behavior.
+- **Async Window Create**: Added `await` to `chrome.windows.create()` call to properly catch popup creation failures.
+- **Null Checks**: Added null guards to `updatePreview()` and all button event listeners to prevent crashes.
+- **Region Data Feedback**: Added user feedback when region data is missing or expired in region mode.
+- **Message Response**: Added `sendResponse()` call before async `handleRegionSelection` to prevent "message port closed" errors.
+- **Privacy**: Removed `console.log` from `updateStatus()` to prevent status messages appearing in logs.
+- **Periodic Cleanup**: Added `chrome.alarms` API for periodic stale data cleanup every 5 minutes.
+- **Event Propagation**: Added `stopPropagation()` to all pointer event handlers to prevent page scripts from intercepting selection.
+- **Clipboard Permission**: Added `clipboardWrite` permission for reliable auto-copy without user gesture requirement.
+- **Stale Data Cleanup**: Normal popup opens now clear any lingering `pendingRegionOcr` data from storage.
+
+### Changed
+
+- **New Permissions**: Added `unlimitedStorage`, `alarms`, and `clipboardWrite` permissions to manifest.
+
 ## [0.5.0] - 2026-01-11
 
 ### Added
