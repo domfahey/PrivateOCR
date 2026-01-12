@@ -29,16 +29,18 @@
 - ~~**Settings Page Scrolling**: The settings page loads `styles.css` which sets `html { overflow: hidden; }`, making the settings page unscrollable (`src/settings.css`).~~ **FIXED**: Added `html { overflow-y: auto; }` to settings.css.
 - ~~Region capture doesn't set `isProcessing` until OCR starts, so users can click other actions while cropping/scaling runs (`src/popup-logic.js`).~~ **FIXED**: Added `setProcessing(true)` at start of handleRegionCapture.
 - ~~`handleRegionCapture` doesn't set `isProcessing` true, so the cancel button remains hidden during cropping/scaling (`src/popup-logic.js`).~~ **FIXED**: Same fix - setProcessing(true) at start of handleRegionCapture.
+- ~~`handleMouseDown` doesn't check `event.button`, so right-click or middle-click triggers selection and can open the context menu under the overlay (`src/content.js:81`).~~ **FIXED**: Added `event.button !== 0` check to only respond to left-click.
+- ~~Escape cancellation doesn't call `preventDefault`/`stopPropagation`, so page-level Escape handlers (modals, fullscreen exits, etc.) fire alongside the overlay cancel (`src/content.js`).~~ **FIXED**: Added `preventDefault()` and `stopPropagation()` to Escape handler.
+- ~~The instruction banner sits above the overlay and receives pointer events, preventing region selection from starting in that area (`src/content.js:61`).~~ **FIXED**: Added `pointer-events: none` to instruction banner.
+- ~~Copy feedback always says "Copied to clipboard" even when auto-copy fails (permission/gesture), so users can be told it succeeded when it didn't (`src/popup-logic.js`).~~ **FIXED**: Now shows "(clipboard failed)" when auto-copy fails after OCR.
+- ~~Silent error handling in multiple locations swallows errors without logging or user feedback.~~ **FIXED**: Added `console.warn` logging to non-critical error handlers (cleanup, cancellation messages, worker termination) and improved user feedback for critical errors.
 
 ## Open
 
 - The overlay only calls `preventDefault` on mouse events, so page-level handlers still run; site scripts can intercept selection gestures and interfere with or cancel the overlay (`src/content.js:63`, `src/content.js:75`, `src/content.js:93`).
 - Releasing the mouse outside the browser window never triggers `mouseup`, leaving the overlay stuck on-screen until refresh (`src/content.js:57`).
-- `handleMouseDown` doesn't check `event.button`, so right-click or middle-click triggers selection and can open the context menu under the overlay (`src/content.js:81`).
-- Escape cancellation doesn't call `preventDefault`/`stopPropagation`, so page-level Escape handlers (modals, fullscreen exits, etc.) fire alongside the overlay cancel (`src/content.js:175`).
 - Image zoom-out/in never clears `max-height: 100%`, so large/tall images stay constrained to the preview pane and zooming can appear to do nothing (`src/popup-logic.js:94`, `src/styles.css:175`).
 - Text zoom size is not reset between OCR runs, so once you zoom, every future session starts at the altered size with no reset control (`src/popup-logic.js:111`).
-- The instruction banner sits above the overlay and receives pointer events, preventing region selection from starting in that area (`src/content.js:61`).
 - `updateStatus` logs every status via `console.log`, including OCR progress; this can expose user activity timing in shared logs and conflicts with "no logging" expectations (`src/popup-logic.js:206`).
 - The progress-bar hide timeout isn't cleared between runs, so a previous `setTimeout` can remove the active bar during a new OCR session (`src/popup-logic.js:195`).
 - `cleanupStaleData` only runs on service worker startup; if the popup never opens, recent screenshot data can persist indefinitely until the worker is restarted (`src/background.js:22`).
@@ -52,7 +54,4 @@
 - Auto-copy happens after OCR completes, but the manifest lacks `clipboardWrite`; without an active user gesture, `navigator.clipboard.writeText` is likely rejected, so auto-copy silently fails despite the UI promise (`src/popup-logic.js:396`, `manifest.json:24`).
 - Region captures can include the dark overlay/selection box because the content script removes the overlay and immediately triggers capture, without waiting for a repaint before `captureVisibleTab` runs (`src/content.js:183`, `src/background.js:86`).
 - Storing full screenshot data URLs in `chrome.storage.local` can exceed the default quota on high-DPI screens; without `unlimitedStorage`, region capture can fail before the popup opens (`src/background.js:97`, `manifest.json:24`).
-- Copy feedback always says “Copied to clipboard” even when auto-copy fails (permission/gesture), so users can be told it succeeded when it didn’t (`src/popup-logic.js:396`, `src/popup-logic.js:595`).
 - `chrome.runtime.onMessage` returns `true` for `"regionSelected"` but never calls `sendResponse`, so the `chrome.runtime.sendMessage` Promise in the content script rejects with "message port closed" errors even when capture succeeds (`src/background.js:44`, `src/content.js:187`).
-- Region selection starts on any mouse button; right/middle clicks trigger selection and can open context menus, leading to unintended selections or stuck overlays (`src/content.js:92`).
-- Escape cancellation doesn't call `preventDefault`/`stopPropagation`, so page-level Escape handlers (modals, fullscreen exits, etc.) fire alongside the overlay cancel (`src/content.js:202`).
