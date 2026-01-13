@@ -14,6 +14,11 @@ A privacy-focused Chrome extension that extracts text from screenshots using loc
 
 **No data leaves your device.**
 
+<div align="center">
+  <img src="../docs/images/popup-screenshot.png" alt="PrivateOCR Popup" width="600">
+  <p><em>PrivateOCR in action — capturing and extracting text locally</em></p>
+</div>
+
 ## Features
 
 - **100% Offline & Private**: All OCR resources are bundled. No images or text are sent to external servers.
