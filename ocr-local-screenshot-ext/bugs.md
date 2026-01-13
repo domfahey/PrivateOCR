@@ -63,7 +63,9 @@
 - ~~In region mode with missing `pendingRegionOcr`, `regionBtn` stays disabled, so users cannot retry selecting a region from the same popup (`src/popup-logic.js`).~~ **FIXED**: Both `regionBtn` and `screenshotBtn` are now disabled when data is missing; user must close and retry from normal tab. This is correct behavior since region mode popup can't inject content scripts.
 - ~~Region-mode scaling status is only shown after `scaleImageIfNeeded` completes, so users see no "Scaling large image..." message during the actual expensive operation (`src/popup-logic.js`).~~ **FIXED**: Now check image dimensions BEFORE calling `scaleImageIfNeeded` and show status immediately.
 
+- ~~When region data is expired, `sourceWindowId` is set before the timestamp check, so "Capture Tab" continues targeting a stale window and fails until the popup reloads (`src/popup-logic.js`).~~ **FIXED**: Only set `sourceWindowId` if data is fresh; disable screenshot button if data is expired.
+- ~~The status indicator dot never switches to processing state because `statusEl` never gets the `processing` class set, so the UI always shows the ready color while OCR is running (`src/popup-logic.js`, `src/styles.css`).~~ **FIXED**: Added `processing` class toggle to `setProcessing()` function.
+
 ## Open
 
-- When region data is expired, `sourceWindowId` is set before the timestamp check, so "Capture Tab" continues targeting a stale window and fails until the popup reloads (`src/popup-logic.js:658`, `src/popup-logic.js:372`).
-- If a region capture fails before storage cleanup, the stale `pendingRegionOcr` entry remains; opening the popup without `regionMode=true` will silently delete it, losing the capture with no feedback (`src/popup-logic.js:678`, `src/background.js:22`).
+None - all known bugs have been fixed!

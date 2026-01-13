@@ -197,6 +197,14 @@ export function init(elements) {
     if (regionBtn) regionBtn.disabled = processing || isRegionModePopup;
     // Show cancel button only when processing
     if (cancelBtn) cancelBtn.style.display = processing ? "flex" : "none";
+    // Toggle processing class on status indicator for animated dot
+    if (statusEl) {
+      if (processing) {
+        statusEl.classList.add("processing");
+      } else {
+        statusEl.classList.remove("processing");
+      }
+    }
   }
 
   /**
@@ -667,15 +675,17 @@ export function init(elements) {
       if (regionData) {
         try {
           const { dataUrl, rect, timestamp, sourceWindowId: storedWindowId } = regionData;
-          // Store source window ID for future captures in this popup
-          sourceWindowId = storedWindowId;
           // Clean up storage immediately
           await chrome.storage.local.remove("pendingRegionOcr");
           // Only process if data is fresh (< 1 minute) to avoid processing stale data
           if (Date.now() - timestamp < 60000) {
+            // Store source window ID only if data is fresh
+            sourceWindowId = storedWindowId;
             await handleRegionCapture(dataUrl, rect);
           } else {
+            // Data expired - don't set sourceWindowId, disable screenshot button
             updateStatus("Region data expired, please try again");
+            if (screenshotBtn) screenshotBtn.disabled = true;
           }
         } catch (err) {
           console.error("Error processing region:", err);

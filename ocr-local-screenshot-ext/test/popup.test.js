@@ -170,6 +170,29 @@ describe("Popup Logic Integration", () => {
       expect(mockWorkerInstance.recognize).toHaveBeenCalledWith(expect.any(File));
     });
 
+    it("should add processing class to status during OCR", async () => {
+      vi.clearAllMocks();
+
+      // Use a slower mock to catch the processing state
+      let resolveRecognize;
+      mockWorkerInstance.recognize.mockImplementationOnce(
+        () => new Promise((resolve) => { resolveRecognize = resolve; })
+      );
+
+      elements.screenshotBtn.click();
+      await flushAll();
+
+      // Status should have processing class while OCR is running
+      expect(elements.statusEl.classList.contains("processing")).toBe(true);
+
+      // Complete OCR
+      resolveRecognize({ data: { text: "Test" } });
+      await flushAll();
+
+      // Processing class should be removed after OCR completes
+      expect(elements.statusEl.classList.contains("processing")).toBe(false);
+    });
+
     it("should update preview", async () => {
         vi.clearAllMocks();
         elements.screenshotBtn.click();
@@ -631,6 +654,36 @@ describe("Popup Logic Integration", () => {
         expect(elements.statusEl.textContent).toBe("Region data expired, please try again");
 
         // Restore location
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: originalLocation,
+        });
+      });
+
+      it("should disable screenshot button when region data is expired", async () => {
+        vi.clearAllMocks();
+
+        const originalLocation = window.location;
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: { ...originalLocation, search: "?regionMode=true" },
+        });
+
+        chrome.storage.local.get.mockResolvedValueOnce({
+          pendingRegionOcr: {
+            dataUrl: "data:image/png;base64,expiredData",
+            rect: { x: 0, y: 0, width: 100, height: 100 },
+            timestamp: Date.now() - 120000, // 2 minutes old
+            sourceWindowId: 999,
+          },
+        });
+
+        init(elements);
+        await flushAll();
+
+        // Screenshot button should be disabled because sourceWindowId should not be set for expired data
+        expect(elements.screenshotBtn.disabled).toBe(true);
+
         Object.defineProperty(window, "location", {
           writable: true,
           value: originalLocation,
