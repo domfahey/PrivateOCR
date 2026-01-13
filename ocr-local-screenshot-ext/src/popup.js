@@ -16,6 +16,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Confidence indicator
     confidenceBadge: document.getElementById("confidenceBadge"),
     confidenceValue: document.getElementById("confidenceValue"),
+    // Retry inversion button
+    retryInvertBtn: document.getElementById("retryInvertBtn"),
     // New elements for split view
     previewImage: document.getElementById("previewImage"),
     emptyImageState: document.getElementById("emptyImageState"),

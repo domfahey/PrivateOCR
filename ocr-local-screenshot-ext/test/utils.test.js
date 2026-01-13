@@ -11,6 +11,7 @@ import {
   isValidDataUrl,
   blobToFile,
   blobToDataUrl,
+  invertImageColors,
   MAX_PIXELS,
   MAX_DIMENSION,
 } from "../src/utils.js";
@@ -447,5 +448,126 @@ describe("blobToDataUrl", () => {
     await expect(blobToDataUrl(blob)).rejects.toThrow("Failed to read blob as data URL");
 
     global.FileReader = originalFileReader;
+  });
+});
+
+describe("invertImageColors", () => {
+  it("should return inverted image data URL", async () => {
+    const dataUrl = "data:image/png;base64,iVBORw0KGgo=";
+    const originalCreateElement = document.createElement;
+    const mockCtx = {
+      drawImage: vi.fn(),
+      getImageData: vi.fn(() => ({
+        data: new Uint8ClampedArray([255, 0, 128, 255]), // R=255, G=0, B=128, A=255
+        width: 1,
+        height: 1,
+      })),
+      putImageData: vi.fn(),
+    };
+    const mockCanvas = {
+      width: 0,
+      height: 0,
+      getContext: vi.fn(() => mockCtx),
+      toDataURL: vi.fn(() => "data:image/png;base64,invertedData"),
+    };
+
+    document.createElement = vi.fn((tag) => {
+      if (tag === "canvas") return mockCanvas;
+      return originalCreateElement.call(document, tag);
+    });
+
+    global.Image = class {
+      constructor() {
+        this.onload = null;
+        this.onerror = null;
+        this.width = 100;
+        this.height = 100;
+        this._src = "";
+      }
+      get src() {
+        return this._src;
+      }
+      set src(val) {
+        this._src = val;
+        setTimeout(() => {
+          if (this.onload) this.onload();
+        }, 0);
+      }
+    };
+
+    const result = await invertImageColors(dataUrl);
+
+    expect(result).toBe("data:image/png;base64,invertedData");
+    expect(mockCtx.drawImage).toHaveBeenCalled();
+    expect(mockCtx.getImageData).toHaveBeenCalled();
+    expect(mockCtx.putImageData).toHaveBeenCalled();
+    expect(mockCanvas.toDataURL).toHaveBeenCalledWith("image/png");
+
+    document.createElement = originalCreateElement;
+  });
+
+  it("should return original data URL on image load error", async () => {
+    const dataUrl = "data:image/png;base64,invalidData";
+
+    global.Image = class {
+      constructor() {
+        this.onload = null;
+        this.onerror = null;
+        this._src = "";
+      }
+      get src() {
+        return this._src;
+      }
+      set src(val) {
+        this._src = val;
+        setTimeout(() => {
+          if (this.onerror) this.onerror();
+        }, 0);
+      }
+    };
+
+    const result = await invertImageColors(dataUrl);
+
+    expect(result).toBe(dataUrl);
+  });
+
+  it("should return original data URL when canvas context unavailable", async () => {
+    const dataUrl = "data:image/png;base64,iVBORw0KGgo=";
+    const originalCreateElement = document.createElement;
+    const mockCanvas = {
+      width: 0,
+      height: 0,
+      getContext: vi.fn(() => null), // No context
+    };
+
+    document.createElement = vi.fn((tag) => {
+      if (tag === "canvas") return mockCanvas;
+      return originalCreateElement.call(document, tag);
+    });
+
+    global.Image = class {
+      constructor() {
+        this.onload = null;
+        this.onerror = null;
+        this.width = 100;
+        this.height = 100;
+        this._src = "";
+      }
+      get src() {
+        return this._src;
+      }
+      set src(val) {
+        this._src = val;
+        setTimeout(() => {
+          if (this.onload) this.onload();
+        }, 0);
+      }
+    };
+
+    const result = await invertImageColors(dataUrl);
+
+    expect(result).toBe(dataUrl);
+
+    document.createElement = originalCreateElement;
   });
 });

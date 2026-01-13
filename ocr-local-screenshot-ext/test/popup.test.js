@@ -64,6 +64,7 @@ describe("Popup Logic Integration", () => {
       <span id="confidenceBadge" class="confidence-badge" style="display: none">
         <span id="confidenceValue">--</span>%
       </span>
+      <button id="retryInvertBtn" class="retry-invert-btn" style="display: none">Retry inverted</button>
       <button id="screenshotBtn">OCR current tab</button>
       <button id="regionBtn">Select region</button>
       <button id="copyBtn">Copy text</button>
@@ -87,6 +88,7 @@ describe("Popup Logic Integration", () => {
       progressIndicator: document.getElementById("progressIndicator"),
       confidenceBadge: document.getElementById("confidenceBadge"),
       confidenceValue: document.getElementById("confidenceValue"),
+      retryInvertBtn: document.getElementById("retryInvertBtn"),
       previewImage: document.getElementById("previewImage"),
       emptyImageState: document.getElementById("emptyImageState"),
       contentArea: document.getElementById("contentArea"),
@@ -1137,6 +1139,74 @@ describe("Popup Logic Integration", () => {
         await flushAll();
 
         expect(elements.confidenceBadge.style.display).toBe("none");
+      });
+    });
+
+    describe("Retry Invert Button", () => {
+      it("should show retry button when confidence is low", async () => {
+        mockRecognize.mockResolvedValueOnce({
+          data: { text: "Some text", confidence: 55 },
+        });
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.retryInvertBtn.style.display).toBe("inline-block");
+      });
+
+      it("should hide retry button when confidence is high", async () => {
+        mockRecognize.mockResolvedValueOnce({
+          data: { text: "Some text", confidence: 92 },
+        });
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.retryInvertBtn.style.display).toBe("none");
+      });
+
+      it("should hide retry button when starting new OCR", async () => {
+        // First OCR with low confidence to show button
+        mockRecognize.mockResolvedValueOnce({
+          data: { text: "Some text", confidence: 55 },
+        });
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.retryInvertBtn.style.display).toBe("inline-block");
+
+        // Start new OCR
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+        elements.screenshotBtn.click();
+        await Promise.resolve();
+
+        expect(elements.retryInvertBtn.style.display).toBe("none");
+      });
+
+      it("should hide retry button when no text is found", async () => {
+        mockRecognize.mockResolvedValueOnce({
+          data: { text: "", confidence: 0 },
+        });
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.retryInvertBtn.style.display).toBe("none");
       });
     });
   });

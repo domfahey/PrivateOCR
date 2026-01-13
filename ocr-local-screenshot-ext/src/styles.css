@@ -416,6 +416,26 @@ main {
   color: #b91c1c;
 }
 
+/* Retry invert button */
+.retry-invert-btn {
+  display: none;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.retry-invert-btn:hover {
+  background: var(--primary);
+  color: white;
+}
+
 /* Progress bar */
 .progress-track {
   height: 4px;

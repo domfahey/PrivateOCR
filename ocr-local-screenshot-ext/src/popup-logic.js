@@ -21,6 +21,7 @@ import {
   dataUrlToBlob,
   scaleImageIfNeeded,
   blobToDataUrl,
+  invertImageColors,
 } from "../src/utils.js";
 
 /**
@@ -44,6 +45,7 @@ export function init(elements) {
     progressIndicator,
     confidenceBadge,
     confidenceValue,
+    retryInvertBtn,
     previewImage,
     emptyImageState,
     contentArea,
@@ -65,6 +67,7 @@ export function init(elements) {
   let currentImageDataUrl = null;
   let sourceWindowId = null; // Original window ID when in region mode
   let isRegionModePopup = false; // True if opened as region mode popup
+  let lastOcrDataUrl = null; // Store for retry with inversion
 
   // UI State
   let isPreviewVisible = true;
@@ -293,6 +296,24 @@ export function init(elements) {
   }
 
   /**
+   * Show the retry invert button (for low confidence results).
+   */
+  function showRetryInvertBtn() {
+    if (retryInvertBtn) {
+      retryInvertBtn.style.display = "inline-block";
+    }
+  }
+
+  /**
+   * Hide the retry invert button.
+   */
+  function hideRetryInvertBtn() {
+    if (retryInvertBtn) {
+      retryInvertBtn.style.display = "none";
+    }
+  }
+
+  /**
    * Initialize or retrieve the Tesseract worker.
    * Handles lazy loading and configuration.
    * @returns {Promise<Tesseract.Worker>}
@@ -392,6 +413,14 @@ export function init(elements) {
 
       if (text.trim()) {
         showConfidence(confidence);
+
+        // Show retry button for low confidence results
+        if (confidence < 70) {
+          showRetryInvertBtn();
+        } else {
+          hideRetryInvertBtn();
+        }
+
         const copied = await copyToClipboard(text);
         const charCount = text.length;
         const wordCount = text.trim().split(/\s+/).length;
@@ -405,8 +434,80 @@ export function init(elements) {
         updateStatus(statusMsg);
       } else {
         hideConfidence();
+        hideRetryInvertBtn();
         updateStatus("Done - no text found");
       }
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  /**
+   * Retry OCR with inverted colors.
+   * Compares inverted result with original and keeps the better one.
+   */
+  async function handleRetryWithInversion() {
+    if (!lastOcrDataUrl || isProcessing) return;
+
+    const originalConfidence = parseInt(confidenceValue?.textContent || "0", 10);
+    const originalText = outputEl.value;
+
+    try {
+      setProcessing(true);
+      hideRetryInvertBtn();
+      updateStatus("Inverting image...");
+
+      // Invert the image colors
+      const invertedDataUrl = await invertImageColors(lastOcrDataUrl);
+
+      // Update preview to show inverted image
+      updatePreview(invertedDataUrl);
+
+      // Convert to file for OCR
+      const invertedBlob = await dataUrlToBlob(invertedDataUrl);
+      const invertedFile = new File([invertedBlob], "inverted.png", {
+        type: "image/png",
+      });
+
+      // Run OCR on inverted image
+      const worker = await getWorker();
+      updateStatus("Recognizing inverted...");
+      const { data } = await worker.recognize(invertedFile);
+      const invertedText = data.text || "";
+      const invertedConfidence = Math.round(data.confidence ?? 0);
+
+      // Compare and pick the best result
+      if (invertedConfidence > originalConfidence && invertedText.trim()) {
+        // Inverted is better - keep it
+        outputEl.value = invertedText;
+        showConfidence(invertedConfidence);
+        lastOcrDataUrl = invertedDataUrl;
+
+        const copied = await copyToClipboard(invertedText);
+        const wordCount = invertedText.trim().split(/\s+/).length;
+        const charCount = invertedText.length;
+
+        let statusMsg = `Done (inverted) - ${wordCount} words, ${charCount} chars`;
+        if (invertedConfidence < 70) {
+          showRetryInvertBtn();
+        }
+        statusMsg += copied ? " (copied)" : " (clipboard failed)";
+        updateStatus(statusMsg);
+      } else {
+        // Original was better - restore it
+        updatePreview(lastOcrDataUrl);
+        outputEl.value = originalText;
+        showConfidence(originalConfidence);
+        updateStatus(`Original better (${originalConfidence}% vs ${invertedConfidence}%)`);
+        if (originalConfidence < 70) {
+          showRetryInvertBtn();
+        }
+      }
+    } catch (err) {
+      console.error("Inversion retry failed:", err);
+      updateStatus("Inversion retry failed");
+      // Restore original preview on error
+      updatePreview(lastOcrDataUrl);
     } finally {
       setProcessing(false);
     }
@@ -499,6 +600,7 @@ export function init(elements) {
     // Set processing immediately to prevent double-clicks and show cancel button
     setProcessing(true);
     hideConfidence();
+    hideRetryInvertBtn();
     try {
       outputEl.value = "";
       // Reset text zoom to default for new OCR
@@ -513,6 +615,7 @@ export function init(elements) {
         return;
       }
       updatePreview(dataUrl);
+      lastOcrDataUrl = dataUrl; // Store for potential retry with inversion
       // Check cancellation before OCR
       if (isCancelled) {
         setProcessing(false);
@@ -584,6 +687,8 @@ export function init(elements) {
     isCancelled = false;
     operationId++;
     setProcessing(true);
+    hideConfidence();
+    hideRetryInvertBtn();
     // Reset text zoom to default for new OCR
     textSize = 15;
     applyTextZoom();
@@ -621,6 +726,7 @@ export function init(elements) {
       }
 
       updatePreview(processedUrl);
+      lastOcrDataUrl = processedUrl; // Store for potential retry with inversion
       const blob = dataUrlToBlob(processedUrl);
       const file = new File([blob], "region.png", { type: blob.type });
       // Check cancellation before OCR
@@ -663,6 +769,7 @@ export function init(elements) {
           operationId++;
           setProcessing(true);
           hideConfidence();
+          hideRetryInvertBtn();
           textSize = 15;
           applyTextZoom();
           outputEl.value = "";
@@ -689,6 +796,7 @@ export function init(elements) {
           if (scaled) {
             updatePreview(processedUrl);
           }
+          lastOcrDataUrl = processedUrl; // Store for potential retry with inversion
 
           // Check cancellation before OCR
           if (isCancelled) {
@@ -753,6 +861,7 @@ export function init(elements) {
           operationId++;
           setProcessing(true);
           hideConfidence();
+          hideRetryInvertBtn();
           textSize = 15;
           applyTextZoom();
           outputEl.value = "";
@@ -767,6 +876,7 @@ export function init(elements) {
             if (scaled) {
               updatePreview(processedUrl);
             }
+            lastOcrDataUrl = processedUrl; // Store for potential retry with inversion
 
             const processedBlob = dataUrlToBlob(processedUrl);
             const file = new File([processedBlob], "clipboard.png", { type: processedBlob.type });
@@ -803,6 +913,7 @@ export function init(elements) {
     operationId++;
     setProcessing(true);
     hideConfidence();
+    hideRetryInvertBtn();
     textSize = 15;
     applyTextZoom();
     outputEl.value = "";
@@ -830,6 +941,7 @@ export function init(elements) {
       if (scaled) {
         updatePreview(processedUrl);
       }
+      lastOcrDataUrl = processedUrl; // Store for potential retry with inversion
 
       // Check cancellation before OCR
       if (isCancelled) {
@@ -935,6 +1047,10 @@ export function init(elements) {
 
   if (cancelBtn) {
     cancelBtn.addEventListener("click", cancelOcr);
+  }
+
+  if (retryInvertBtn) {
+    retryInvertBtn.addEventListener("click", handleRetryWithInversion);
   }
 
   /**
@@ -1044,6 +1160,7 @@ export function init(elements) {
     operationId++;
     setProcessing(true);
     hideConfidence();
+    hideRetryInvertBtn();
     // Reset text zoom for new OCR
     textSize = 15;
     applyTextZoom();
@@ -1083,6 +1200,7 @@ export function init(elements) {
       if (scaled) {
         updatePreview(processedUrl);
       }
+      lastOcrDataUrl = processedUrl; // Store for potential retry with inversion
 
       const processedBlob = dataUrlToBlob(processedUrl);
       const file = new File([processedBlob], "context-menu-image.png", {
