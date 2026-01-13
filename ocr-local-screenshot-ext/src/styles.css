@@ -188,6 +188,62 @@ main {
   gap: 12px;
 }
 
+/* ============================================
+   Import / Drop Zone
+   ============================================ */
+.import-section {
+  margin-top: 12px;
+}
+
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.drop-zone.drag-over {
+  border-style: solid;
+}
+
+.drop-icon {
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.drop-zone:hover .drop-icon,
+.drop-zone.drag-over .drop-icon {
+  color: var(--color-accent);
+}
+
+.drop-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.drop-subtext {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 2px 0 4px;
+}
+
+.file-picker-label {
+  cursor: pointer;
+}
+
 .md-btn {
   position: relative;
   display: flex;

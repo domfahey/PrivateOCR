@@ -135,3 +135,17 @@ export function isValidDataUrl(dataUrl) {
 export function blobToFile(blob, filename = "image.png") {
   return new File([blob], filename, { type: blob.type });
 }
+
+/**
+ * Convert a Blob to a data URL
+ * @param {Blob} blob - The blob to convert
+ * @returns {Promise<string>} - The resulting data URL
+ */
+export function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Failed to read blob as data URL"));
+    reader.readAsDataURL(blob);
+  });
+}

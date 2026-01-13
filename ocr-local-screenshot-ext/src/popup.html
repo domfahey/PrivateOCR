@@ -42,6 +42,37 @@
           </span>
           <span class="label">Select Region</span>
         </button>
+        <button id="pasteBtn" class="md-btn md-btn-tonal" title="Paste image from clipboard">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path
+                d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"
+              />
+            </svg>
+          </span>
+          <span class="label">Paste</span>
+        </button>
+      </div>
+
+      <div class="import-section">
+        <div id="dropZone" class="drop-zone">
+          <svg class="drop-icon" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+            <path
+              d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6zm5-6v3h2v-3h3l-4-4-4 4h3z"
+            />
+          </svg>
+          <span class="drop-text">Drop image here</span>
+          <span class="drop-subtext">or</span>
+          <label class="file-picker-label">
+            <input
+              type="file"
+              id="fileInput"
+              accept="image/png,image/jpeg,image/webp,image/gif,image/bmp"
+              hidden
+            />
+            <span class="md-btn md-btn-tonal small">Choose File</span>
+          </label>
+        </div>
       </div>
 
       <div class="status-container">

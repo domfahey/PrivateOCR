@@ -13,6 +13,17 @@ const createChromeMock = () => ({
       addListener: vi.fn(),
       removeListener: vi.fn(),
     },
+    onInstalled: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
+  },
+  contextMenus: {
+    create: vi.fn(),
+    onClicked: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
   },
   tabs: {
     query: vi.fn().mockResolvedValue([{ id: 1, windowId: 1 }]),

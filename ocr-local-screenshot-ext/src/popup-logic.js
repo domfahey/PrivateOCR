@@ -15,7 +15,13 @@
  * @module popup-logic
  */
 
-import { MAX_PIXELS, MAX_DIMENSION, dataUrlToBlob, scaleImageIfNeeded } from "../src/utils.js";
+import {
+  MAX_PIXELS,
+  MAX_DIMENSION,
+  dataUrlToBlob,
+  scaleImageIfNeeded,
+  blobToDataUrl,
+} from "../src/utils.js";
 
 /**
  * Initialize the popup logic.
@@ -29,6 +35,9 @@ export function init(elements) {
     outputEl,
     screenshotBtn,
     regionBtn,
+    pasteBtn,
+    dropZone,
+    fileInput,
     copyBtn,
     cancelBtn,
     progressTrack,
@@ -216,6 +225,10 @@ export function init(elements) {
   const PROCESSING_STATUSES = [
     "Capturing screenshot...",
     "Loading OCR engine...",
+    "Loading image...",
+    "Processing clipboard image...",
+    "Processing pasted image...",
+    "Processing file...",
     "Recognizing...",
     "Cropping region...",
     "Scaling large image...",
@@ -589,6 +602,82 @@ export function init(elements) {
     }
   }
 
+  /**
+   * Handle paste button click or Ctrl+V.
+   * Reads image from clipboard and runs OCR.
+   */
+  async function handlePaste() {
+    if (isProcessing) return;
+
+    try {
+      const items = await navigator.clipboard.read();
+      let imageFound = false;
+
+      for (const item of items) {
+        const imageType = item.types.find((t) => t.startsWith("image/"));
+        if (imageType) {
+          imageFound = true;
+          const blob = await item.getType(imageType);
+
+          // Reset state for new OCR
+          isCancelled = false;
+          operationId++;
+          setProcessing(true);
+          textSize = 15;
+          applyTextZoom();
+          outputEl.value = "";
+
+          // Warn for large files
+          if (blob.size > 10 * 1024 * 1024) {
+            updateStatus("Warning: Large image. Processing may be slow.");
+          } else {
+            updateStatus("Processing clipboard image...");
+          }
+
+          const dataUrl = await blobToDataUrl(blob);
+          updatePreview(dataUrl);
+
+          // Check cancellation
+          if (isCancelled) {
+            setProcessing(false);
+            updateStatus("Cancelled");
+            return;
+          }
+
+          // Scale if needed
+          const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(dataUrl);
+          if (scaled) {
+            updatePreview(processedUrl);
+          }
+
+          // Check cancellation before OCR
+          if (isCancelled) {
+            setProcessing(false);
+            updateStatus("Cancelled");
+            return;
+          }
+
+          const processedBlob = dataUrlToBlob(processedUrl);
+          const file = new File([processedBlob], "clipboard.png", { type: processedBlob.type });
+          await runOcrOnFile(file);
+          break;
+        }
+      }
+
+      if (!imageFound) {
+        updateStatus("No image found in clipboard. Copy an image first.");
+      }
+    } catch (err) {
+      if (err.name === "NotAllowedError") {
+        updateStatus("Clipboard access denied. Please allow clipboard permissions.");
+      } else {
+        console.error("Clipboard error:", err);
+        updateStatus("Error reading clipboard: " + (err.message || String(err)));
+      }
+      setProcessing(false);
+    }
+  }
+
   if (screenshotBtn) {
     screenshotBtn.addEventListener("click", () => {
       handleScreenshotClick();
@@ -598,6 +687,164 @@ export function init(elements) {
   if (regionBtn) {
     regionBtn.addEventListener("click", () => {
       handleRegionClick();
+    });
+  }
+
+  if (pasteBtn) {
+    pasteBtn.addEventListener("click", handlePaste);
+  }
+
+  // Handle Ctrl+V paste anywhere in popup (except in output textarea)
+  document.addEventListener("paste", async (e) => {
+    // Don't intercept if user is in output textarea
+    if (e.target === outputEl) return;
+    if (isProcessing) return;
+
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const blob = item.getAsFile();
+        if (blob) {
+          // Reset state for new OCR
+          isCancelled = false;
+          operationId++;
+          setProcessing(true);
+          textSize = 15;
+          applyTextZoom();
+          outputEl.value = "";
+
+          try {
+            updateStatus("Processing pasted image...");
+            const dataUrl = await blobToDataUrl(blob);
+            updatePreview(dataUrl);
+
+            // Scale if needed
+            const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(dataUrl);
+            if (scaled) {
+              updatePreview(processedUrl);
+            }
+
+            const processedBlob = dataUrlToBlob(processedUrl);
+            const file = new File([processedBlob], "clipboard.png", { type: processedBlob.type });
+            await runOcrOnFile(file);
+          } catch (err) {
+            console.error("Paste error:", err);
+            updateStatus("Error processing pasted image: " + (err.message || String(err)));
+            setProcessing(false);
+          }
+        }
+        break;
+      }
+    }
+  });
+
+  // Accepted image formats for file upload
+  const ACCEPTED_FORMATS = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/bmp"];
+
+  /**
+   * Process an uploaded file.
+   * @param {File} file - The file to process
+   */
+  async function processFile(file) {
+    if (isProcessing) return;
+
+    // Validate format
+    if (!ACCEPTED_FORMATS.includes(file.type)) {
+      updateStatus("Unsupported format. Use PNG, JPG, WebP, GIF, or BMP.");
+      return;
+    }
+
+    // Reset state for new OCR
+    isCancelled = false;
+    operationId++;
+    setProcessing(true);
+    textSize = 15;
+    applyTextZoom();
+    outputEl.value = "";
+
+    // Warn for large files
+    if (file.size > 10 * 1024 * 1024) {
+      updateStatus("Warning: Large file. Processing may be slow.");
+    } else {
+      updateStatus("Processing file...");
+    }
+
+    try {
+      const dataUrl = await blobToDataUrl(file);
+      updatePreview(dataUrl);
+
+      // Check cancellation
+      if (isCancelled) {
+        setProcessing(false);
+        updateStatus("Cancelled");
+        return;
+      }
+
+      // Scale if needed
+      const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(dataUrl);
+      if (scaled) {
+        updatePreview(processedUrl);
+      }
+
+      // Check cancellation before OCR
+      if (isCancelled) {
+        setProcessing(false);
+        updateStatus("Cancelled");
+        return;
+      }
+
+      const processedBlob = dataUrlToBlob(processedUrl);
+      const processedFile = new File([processedBlob], file.name, { type: processedBlob.type });
+      await runOcrOnFile(processedFile);
+    } catch (err) {
+      console.error("File processing error:", err);
+      updateStatus("Error processing file: " + (err.message || String(err)));
+      setProcessing(false);
+    }
+  }
+
+  // Set up drag-and-drop and file input handlers
+  if (dropZone) {
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.add("drag-over");
+    });
+
+    dropZone.addEventListener("dragleave", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove("drag-over");
+    });
+
+    dropZone.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove("drag-over");
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        await processFile(files[0]);
+      }
+    });
+
+    // Click on drop zone opens file picker (but not when clicking on file input label)
+    dropZone.addEventListener("click", (e) => {
+      if (fileInput && !e.target.closest(".file-picker-label")) {
+        fileInput.click();
+      }
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", async (e) => {
+      if (e.target.files.length > 0) {
+        await processFile(e.target.files[0]);
+        fileInput.value = ""; // Reset for re-selection
+      }
     });
   }
 
@@ -708,5 +955,108 @@ export function init(elements) {
     }
   }
 
+  /**
+   * Check if the popup was opened from context menu.
+   * This happens when the user right-clicks an image and selects "Extract text with PrivateOCR".
+   */
+  async function checkContextMenuMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("source") !== "contextMenu") return;
+
+    // Mark as context menu mode - disable region button (can't inject into extension pages)
+    isRegionModePopup = true;
+    if (regionBtn) regionBtn.disabled = true;
+
+    let contextMenuData;
+    try {
+      const result = await chrome.storage.local.get("pendingContextMenuOcr");
+      contextMenuData = result.pendingContextMenuOcr;
+    } catch (err) {
+      console.error("Error loading context menu data:", err);
+      updateStatus("Error: Unable to load image data from storage");
+      return;
+    }
+
+    if (!contextMenuData) {
+      updateStatus("No image data found. Please try again.");
+      return;
+    }
+
+    const { imageUrl, timestamp } = contextMenuData;
+
+    // Clean up storage immediately
+    try {
+      await chrome.storage.local.remove("pendingContextMenuOcr");
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    // Check freshness (60 second limit)
+    if (Date.now() - timestamp > 60000) {
+      updateStatus("Image data expired. Please try again.");
+      return;
+    }
+
+    // Fetch and process the image
+    isCancelled = false;
+    operationId++;
+    setProcessing(true);
+    // Reset text zoom for new OCR
+    textSize = 15;
+    applyTextZoom();
+
+    try {
+      updateStatus("Loading image...");
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+      const blob = await response.blob();
+
+      // Check cancellation after fetch
+      if (isCancelled) {
+        setProcessing(false);
+        updateStatus("Cancelled");
+        return;
+      }
+
+      // Warn for large files
+      if (blob.size > 10 * 1024 * 1024) {
+        updateStatus("Warning: Large image. Processing may be slow.");
+      }
+
+      const dataUrl = await blobToDataUrl(blob);
+      updatePreview(dataUrl);
+
+      // Check cancellation before OCR
+      if (isCancelled) {
+        setProcessing(false);
+        updateStatus("Cancelled");
+        return;
+      }
+
+      // Scale if needed
+      const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(dataUrl);
+      if (scaled) {
+        updatePreview(processedUrl);
+      }
+
+      const processedBlob = dataUrlToBlob(processedUrl);
+      const file = new File([processedBlob], "context-menu-image.png", {
+        type: processedBlob.type,
+      });
+      await runOcrOnFile(file);
+    } catch (err) {
+      if (isCancelled || (err && err.message === "Cancelled")) {
+        updateStatus("Cancelled");
+      } else {
+        console.error("Error processing context menu image:", err);
+        updateStatus("Error loading image: " + (err.message || String(err)));
+      }
+      setProcessing(false);
+    }
+  }
+
   checkRegionMode();
+  checkContextMenuMode();
 }

@@ -49,6 +49,52 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 /**
+ * Create context menu on extension install/update.
+ * This menu appears when right-clicking on images in web pages.
+ */
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "ocr-image",
+    title: "Extract text with PrivateOCR",
+    contexts: ["image"],
+  });
+});
+
+/**
+ * Handle context menu click.
+ * Stores the image URL and opens the popup to process it.
+ */
+chrome.contextMenus.onClicked.addListener(async (info) => {
+  if (info.menuItemId === "ocr-image" && info.srcUrl) {
+    try {
+      // Store image URL in storage for popup to retrieve
+      await chrome.storage.local.set({
+        pendingContextMenuOcr: {
+          imageUrl: info.srcUrl,
+          timestamp: Date.now(),
+        },
+      });
+
+      // Open popup window
+      await chrome.windows.create({
+        url: chrome.runtime.getURL("src/popup.html") + "?source=contextMenu",
+        type: "popup",
+        width: 800,
+        height: 600,
+      });
+    } catch (error) {
+      console.error("Error handling context menu click:", error);
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon48.png",
+        title: "Error",
+        message: error.message || "Failed to open OCR. Please try again.",
+      });
+    }
+  }
+});
+
+/**
  * Listen for messages from content scripts.
  * Currently handles "regionSelected" messages from the region selection overlay.
  */
