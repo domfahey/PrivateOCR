@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-01-12
+
+### Fixed
+
+- **Expired Region Data**: Screenshot button is now disabled when region data is expired, preventing capture attempts to stale windows.
+- **Processing Indicator**: Status dot now animates during OCR operations via the `processing` CSS class.
+
+### Changed
+
+- **Test Coverage**: Added 2 new tests; 193 tests now passing.
+
 ## [0.5.2] - 2026-01-12
 
 ### Fixed
