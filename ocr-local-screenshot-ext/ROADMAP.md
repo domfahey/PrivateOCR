@@ -15,6 +15,7 @@ Feature roadmap for PrivateOCR based on competitive analysis and user needs.
 - Clipboard paste support
 - File upload / drag-and-drop
 - OCR confidence indicator
+- Dark theme inversion retry
 
 ---
 
@@ -56,13 +57,13 @@ Show OCR accuracy percentage in results.
 - ~~Visual indicator (color-coded: green ≥90%, amber 70-89%, red <70%)~~
 - ~~Warning message for low confidence results~~
 
-### Dark Theme Inversion
+### ~~Dark Theme Inversion~~ ✅
 
-Auto-retry with inverted colors for better accuracy on dark backgrounds.
+Retry with inverted colors for better accuracy on dark backgrounds.
 
-- Detect low confidence results
-- Automatically invert and re-process
-- Show best result
+- ~~"Retry inverted" button appears when confidence < 70%~~
+- ~~Invert image colors and re-run OCR~~
+- ~~Automatically select result with higher confidence~~
 
 ### Keyboard Shortcuts
 
