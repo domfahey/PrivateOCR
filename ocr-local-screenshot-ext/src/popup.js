@@ -13,6 +13,9 @@ document.addEventListener("DOMContentLoaded", () => {
     cancelBtn: document.getElementById("cancelBtn"),
     progressTrack: document.getElementById("progressTrack"),
     progressIndicator: document.getElementById("progressIndicator"),
+    // Confidence indicator
+    confidenceBadge: document.getElementById("confidenceBadge"),
+    confidenceValue: document.getElementById("confidenceValue"),
     // New elements for split view
     previewImage: document.getElementById("previewImage"),
     emptyImageState: document.getElementById("emptyImageState"),

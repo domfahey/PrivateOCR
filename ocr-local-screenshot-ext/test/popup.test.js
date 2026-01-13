@@ -61,6 +61,9 @@ describe("Popup Logic Integration", () => {
       <div id="progressTrack">
         <div id="progressIndicator"></div>
       </div>
+      <span id="confidenceBadge" class="confidence-badge" style="display: none">
+        <span id="confidenceValue">--</span>%
+      </span>
       <button id="screenshotBtn">OCR current tab</button>
       <button id="regionBtn">Select region</button>
       <button id="copyBtn">Copy text</button>
@@ -82,6 +85,8 @@ describe("Popup Logic Integration", () => {
       cancelBtn: document.getElementById("cancelBtn"),
       progressTrack: document.getElementById("progressTrack"),
       progressIndicator: document.getElementById("progressIndicator"),
+      confidenceBadge: document.getElementById("confidenceBadge"),
+      confidenceValue: document.getElementById("confidenceValue"),
       previewImage: document.getElementById("previewImage"),
       emptyImageState: document.getElementById("emptyImageState"),
       contentArea: document.getElementById("contentArea"),
@@ -96,7 +101,9 @@ describe("Popup Logic Integration", () => {
     elements.statusEl.textContent = "Ready"; // Initialize status text to match HTML
 
     // Setup global Tesseract mock
-    mockRecognize = vi.fn(() => Promise.resolve({ data: { text: "Mock recognized text" } }));
+    mockRecognize = vi.fn(() =>
+      Promise.resolve({ data: { text: "Mock recognized text", confidence: 92 } })
+    );
     mockTerminate = vi.fn(() => Promise.resolve());
     mockWorkerInstance = {
       recognize: mockRecognize,
@@ -164,7 +171,7 @@ describe("Popup Logic Integration", () => {
       elements.screenshotBtn.click();
       await flushAll();
 
-      expect(elements.statusEl.textContent).toBe("Done - 3 words, 20 chars (copied to clipboard)");
+      expect(elements.statusEl.textContent).toBe("Done - 3 words, 20 chars (copied)");
       expect(chrome.tabs.captureVisibleTab).toHaveBeenCalled();
       expect(mockCreateWorker).toHaveBeenCalled();
       expect(mockWorkerInstance.recognize).toHaveBeenCalledWith(expect.any(File));
@@ -448,7 +455,7 @@ describe("Popup Logic Integration", () => {
 
         // Should have called createWorker twice (not returned cached rejected promise)
         expect(mockCreateWorker).toHaveBeenCalledTimes(2);
-        expect(elements.statusEl.textContent).toBe("Done - 3 words, 20 chars (copied to clipboard)");
+        expect(elements.statusEl.textContent).toBe("Done - 3 words, 20 chars (copied)");
       });
     });
 
@@ -1014,6 +1021,122 @@ describe("Popup Logic Integration", () => {
 
         // Should show an error status, not continue silently
         expect(elements.statusEl.textContent).toContain("Error");
+      });
+    });
+
+    describe("Confidence Indicator", () => {
+      it("should display confidence badge after OCR", async () => {
+        // Mock tab query for the click handler
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.confidenceBadge.style.display).toBe("inline-flex");
+        expect(elements.confidenceValue.textContent).toBe("92");
+      });
+
+      it("should apply 'high' class for confidence >= 90", async () => {
+        mockRecognize.mockResolvedValueOnce({
+          data: { text: "Test text", confidence: 95 },
+        });
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.confidenceBadge.classList.contains("high")).toBe(true);
+        expect(elements.confidenceBadge.classList.contains("medium")).toBe(false);
+        expect(elements.confidenceBadge.classList.contains("low")).toBe(false);
+      });
+
+      it("should apply 'medium' class for confidence 70-89", async () => {
+        mockRecognize.mockResolvedValueOnce({
+          data: { text: "Test text", confidence: 75 },
+        });
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.confidenceBadge.classList.contains("medium")).toBe(true);
+        expect(elements.confidenceBadge.classList.contains("high")).toBe(false);
+        expect(elements.confidenceBadge.classList.contains("low")).toBe(false);
+      });
+
+      it("should apply 'low' class for confidence < 70", async () => {
+        mockRecognize.mockResolvedValueOnce({
+          data: { text: "Test text", confidence: 55 },
+        });
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.confidenceBadge.classList.contains("low")).toBe(true);
+        expect(elements.confidenceBadge.classList.contains("high")).toBe(false);
+        expect(elements.confidenceBadge.classList.contains("medium")).toBe(false);
+      });
+
+      it("should show warning message for low confidence", async () => {
+        mockRecognize.mockResolvedValueOnce({
+          data: { text: "Test text", confidence: 55 },
+        });
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.statusEl.textContent).toContain("low confidence");
+        expect(elements.statusEl.textContent).toContain("consider retrying");
+      });
+
+      it("should hide confidence badge when starting new OCR", async () => {
+        // First OCR to show badge
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.confidenceBadge.style.display).toBe("inline-flex");
+
+        // Reset for second OCR
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        // Start new capture - badge should hide immediately
+        elements.screenshotBtn.click();
+        // Don't wait for completion, just check badge is hidden
+        await Promise.resolve();
+
+        expect(elements.confidenceBadge.style.display).toBe("none");
+      });
+
+      it("should not show confidence badge when no text is found", async () => {
+        mockRecognize.mockResolvedValueOnce({
+          data: { text: "", confidence: 0 },
+        });
+        chrome.tabs.query.mockResolvedValueOnce([
+          { id: 1, url: "https://example.com", windowId: 1 },
+        ]);
+
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        expect(elements.confidenceBadge.style.display).toBe("none");
       });
     });
   });

@@ -390,6 +390,32 @@ main {
   }
 }
 
+/* Confidence badge */
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.confidence-badge.high {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
+.confidence-badge.medium {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.confidence-badge.low {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
 /* Progress bar */
 .progress-track {
   height: 4px;

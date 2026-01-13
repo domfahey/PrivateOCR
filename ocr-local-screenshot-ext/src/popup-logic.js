@@ -42,6 +42,8 @@ export function init(elements) {
     cancelBtn,
     progressTrack,
     progressIndicator,
+    confidenceBadge,
+    confidenceValue,
     previewImage,
     emptyImageState,
     contentArea,
@@ -261,6 +263,36 @@ export function init(elements) {
   }
 
   /**
+   * Display the confidence badge with color-coded styling.
+   * @param {number} confidence - Confidence percentage (0-100)
+   */
+  function showConfidence(confidence) {
+    if (!confidenceBadge || !confidenceValue) return;
+
+    confidenceValue.textContent = confidence;
+    confidenceBadge.style.display = "inline-flex";
+
+    // Apply color class based on thresholds: green >=90%, amber 70-89%, red <70%
+    confidenceBadge.classList.remove("high", "medium", "low");
+    if (confidence >= 90) {
+      confidenceBadge.classList.add("high");
+    } else if (confidence >= 70) {
+      confidenceBadge.classList.add("medium");
+    } else {
+      confidenceBadge.classList.add("low");
+    }
+  }
+
+  /**
+   * Hide the confidence badge.
+   */
+  function hideConfidence() {
+    if (confidenceBadge) {
+      confidenceBadge.style.display = "none";
+    }
+  }
+
+  /**
    * Initialize or retrieve the Tesseract worker.
    * Handles lazy loading and configuration.
    * @returns {Promise<Tesseract.Worker>}
@@ -355,18 +387,24 @@ export function init(elements) {
       updateStatus("Recognizing...");
       const { data } = await worker.recognize(file);
       const text = data.text || "";
+      const confidence = Math.round(data.confidence ?? 0);
       outputEl.value = text;
 
       if (text.trim()) {
+        showConfidence(confidence);
         const copied = await copyToClipboard(text);
         const charCount = text.length;
         const wordCount = text.trim().split(/\s+/).length;
-        if (copied) {
-          updateStatus(`Done - ${wordCount} words, ${charCount} chars (copied to clipboard)`);
-        } else {
-          updateStatus(`Done - ${wordCount} words, ${charCount} chars (clipboard failed)`);
+
+        // Build status message with optional low confidence warning
+        let statusMsg = `Done - ${wordCount} words, ${charCount} chars`;
+        if (confidence < 70) {
+          statusMsg += " (low confidence - consider retrying)";
         }
+        statusMsg += copied ? " (copied)" : " (clipboard failed)";
+        updateStatus(statusMsg);
       } else {
+        hideConfidence();
         updateStatus("Done - no text found");
       }
     } finally {
@@ -460,6 +498,7 @@ export function init(elements) {
     operationId++;
     // Set processing immediately to prevent double-clicks and show cancel button
     setProcessing(true);
+    hideConfidence();
     try {
       outputEl.value = "";
       // Reset text zoom to default for new OCR
@@ -623,6 +662,7 @@ export function init(elements) {
           isCancelled = false;
           operationId++;
           setProcessing(true);
+          hideConfidence();
           textSize = 15;
           applyTextZoom();
           outputEl.value = "";
@@ -712,6 +752,7 @@ export function init(elements) {
           isCancelled = false;
           operationId++;
           setProcessing(true);
+          hideConfidence();
           textSize = 15;
           applyTextZoom();
           outputEl.value = "";
@@ -761,6 +802,7 @@ export function init(elements) {
     isCancelled = false;
     operationId++;
     setProcessing(true);
+    hideConfidence();
     textSize = 15;
     applyTextZoom();
     outputEl.value = "";
@@ -1001,6 +1043,7 @@ export function init(elements) {
     isCancelled = false;
     operationId++;
     setProcessing(true);
+    hideConfidence();
     // Reset text zoom for new OCR
     textSize = 15;
     applyTextZoom();
