@@ -2,7 +2,7 @@
 
 Feature roadmap for PrivateOCR based on competitive analysis and user needs.
 
-## Current Version: v0.6.0
+## Current Version: v0.7.0
 
 **Core Features:**
 
@@ -14,6 +14,7 @@ Feature roadmap for PrivateOCR based on competitive analysis and user needs.
 - Context menu OCR (right-click images)
 - Clipboard paste support
 - File upload / drag-and-drop
+- OCR confidence indicator
 
 ---
 
@@ -47,13 +48,13 @@ Paste screenshots directly from clipboard.
 
 ## v0.7.0 - Accuracy & Feedback
 
-### Confidence Indicator
+### ~~Confidence Indicator~~ ✅
 
 Show OCR accuracy percentage in results.
 
-- Display confidence score after OCR
-- Visual indicator (color-coded)
-- Help users know when to retry
+- ~~Display confidence score after OCR~~
+- ~~Visual indicator (color-coded: green ≥90%, amber 70-89%, red <70%)~~
+- ~~Warning message for low confidence results~~
 
 ### Dark Theme Inversion
 
