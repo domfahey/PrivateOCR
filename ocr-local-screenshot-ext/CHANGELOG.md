@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-01-12
+
+### Fixed
+
+- **Data URL Validation**: `isValidDataUrl` now accepts data URLs with additional parameters like `charset=utf-8` before `;base64,`.
+- **Region Mode Safety**: Screenshot button is now disabled when region data is missing, preventing accidental capture of the popup window itself.
+- **Dead Code Removal**: Removed unused `sourceTabId` from stored region data.
+- **Region Scaling Status**: "Scaling large image..." message now appears BEFORE the scaling operation in region mode, not after.
+
+### Changed
+
+- **Test Coverage**: Added 6 new tests for edge cases; 191 tests now passing.
+
 ## [0.5.1] - 2026-01-12
 
 ### Fixed

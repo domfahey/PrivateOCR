@@ -66,3 +66,4 @@
 ## Open
 
 - When region data is expired, `sourceWindowId` is set before the timestamp check, so "Capture Tab" continues targeting a stale window and fails until the popup reloads (`src/popup-logic.js:658`, `src/popup-logic.js:372`).
+- If a region capture fails before storage cleanup, the stale `pendingRegionOcr` entry remains; opening the popup without `regionMode=true` will silently delete it, losing the capture with no feedback (`src/popup-logic.js:678`, `src/background.js:22`).
