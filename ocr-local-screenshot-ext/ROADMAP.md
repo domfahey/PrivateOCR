@@ -2,7 +2,7 @@
 
 Feature roadmap for PrivateOCR based on competitive analysis and user needs.
 
-## Current Version: v0.5.3
+## Current Version: v0.6.0
 
 **Core Features:**
 
@@ -11,34 +11,37 @@ Feature roadmap for PrivateOCR based on competitive analysis and user needs.
 - Auto-copy to clipboard
 - 100% offline processing
 - Modern Material Design UI
+- Context menu OCR (right-click images)
+- Clipboard paste support
+- File upload / drag-and-drop
 
 ---
 
-## v0.6.0 - Input Methods
+## ~~v0.6.0 - Input Methods~~ ✅ Complete
 
-### Context Menu OCR
+### ~~Context Menu OCR~~ ✅
 
 Right-click on any image in a webpage to extract text.
 
-- Add `contextMenus` permission
-- "Extract text from image" menu item
-- Opens popup with OCR result
+- ~~Add `contextMenus` permission~~
+- ~~"Extract text from image" menu item~~
+- ~~Opens popup with OCR result~~
 
-### File Upload / Drag-and-Drop
+### ~~File Upload / Drag-and-Drop~~ ✅
 
 Import images directly into the popup.
 
-- Drag-and-drop zone in popup
-- File picker button
-- Support common image formats (PNG, JPG, WebP, GIF)
+- ~~Drag-and-drop zone in popup~~
+- ~~File picker button~~
+- ~~Support common image formats (PNG, JPG, WebP, GIF, BMP)~~
 
-### Clipboard Paste
+### ~~Clipboard Paste~~ ✅
 
 Paste screenshots directly from clipboard.
 
-- "Paste from clipboard" button
-- `Ctrl+V` / `Cmd+V` support in popup
-- Handle `image/*` MIME types
+- ~~"Paste from clipboard" button~~
+- ~~`Ctrl+V` / `Cmd+V` support in popup~~
+- ~~Handle `image/*` MIME types~~
 
 ---
 
