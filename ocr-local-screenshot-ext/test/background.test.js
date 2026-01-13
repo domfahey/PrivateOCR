@@ -386,4 +386,134 @@ describe("Background Service Worker", () => {
       expect(chrome.notifications.create).not.toHaveBeenCalled();
     });
   });
+
+  describe("Context Menu", () => {
+    let onInstalledHandler;
+    let contextMenuClickHandler;
+
+    beforeEach(() => {
+      // Capture handlers
+      chrome.runtime.onInstalled.addListener = vi.fn((handler) => {
+        onInstalledHandler = handler;
+      });
+      chrome.contextMenus.onClicked.addListener = vi.fn((handler) => {
+        contextMenuClickHandler = handler;
+      });
+    });
+
+    it("should register context menu on extension install", async () => {
+      await import("../src/background.js");
+
+      expect(chrome.runtime.onInstalled.addListener).toHaveBeenCalled();
+      expect(onInstalledHandler).toBeDefined();
+    });
+
+    it("should create context menu item with correct options", async () => {
+      await import("../src/background.js");
+
+      // Trigger onInstalled
+      onInstalledHandler();
+
+      expect(chrome.contextMenus.create).toHaveBeenCalledWith({
+        id: "ocr-image",
+        title: "Extract text with PrivateOCR",
+        contexts: ["image"],
+      });
+    });
+
+    it("should register context menu click handler", async () => {
+      await import("../src/background.js");
+
+      expect(chrome.contextMenus.onClicked.addListener).toHaveBeenCalled();
+      expect(contextMenuClickHandler).toBeDefined();
+    });
+
+    it("should store image URL and open popup on context menu click", async () => {
+      await import("../src/background.js");
+
+      const mockInfo = {
+        menuItemId: "ocr-image",
+        srcUrl: "https://example.com/image.png",
+      };
+
+      contextMenuClickHandler(mockInfo, { id: 1 });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.storage.local.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pendingContextMenuOcr: expect.objectContaining({
+            imageUrl: "https://example.com/image.png",
+            timestamp: expect.any(Number),
+          }),
+        })
+      );
+
+      expect(chrome.windows.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: expect.stringContaining("?source=contextMenu"),
+          type: "popup",
+          width: 800,
+          height: 600,
+        })
+      );
+    });
+
+    it("should not process click for non-ocr-image menu items", async () => {
+      await import("../src/background.js");
+      chrome.storage.local.set.mockClear();
+      chrome.windows.create.mockClear();
+
+      const mockInfo = {
+        menuItemId: "other-item",
+        srcUrl: "https://example.com/image.png",
+      };
+
+      contextMenuClickHandler(mockInfo, { id: 1 });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.storage.local.set).not.toHaveBeenCalled();
+      expect(chrome.windows.create).not.toHaveBeenCalled();
+    });
+
+    it("should not process click without srcUrl", async () => {
+      await import("../src/background.js");
+      chrome.storage.local.set.mockClear();
+      chrome.windows.create.mockClear();
+
+      const mockInfo = {
+        menuItemId: "ocr-image",
+        // No srcUrl
+      };
+
+      contextMenuClickHandler(mockInfo, { id: 1 });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.storage.local.set).not.toHaveBeenCalled();
+      expect(chrome.windows.create).not.toHaveBeenCalled();
+    });
+
+    it("should show notification on error", async () => {
+      await import("../src/background.js");
+      chrome.storage.local.set.mockRejectedValueOnce(new Error("Storage error"));
+
+      const mockInfo = {
+        menuItemId: "ocr-image",
+        srcUrl: "https://example.com/image.png",
+      };
+
+      contextMenuClickHandler(mockInfo, { id: 1 });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(chrome.notifications.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "basic",
+          title: "Error",
+        })
+      );
+    });
+  });
 });

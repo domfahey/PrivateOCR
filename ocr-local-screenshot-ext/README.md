@@ -5,7 +5,7 @@
 
 [![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-193%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-204%20passing-brightgreen.svg)]()
 
 </div>
 

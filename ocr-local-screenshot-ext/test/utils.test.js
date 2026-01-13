@@ -10,6 +10,7 @@ import {
   countWords,
   isValidDataUrl,
   blobToFile,
+  blobToDataUrl,
   MAX_PIXELS,
   MAX_DIMENSION,
 } from "../src/utils.js";
@@ -400,5 +401,51 @@ describe("constants", () => {
 
   it("MAX_DIMENSION should be 3000", () => {
     expect(MAX_DIMENSION).toBe(3000);
+  });
+});
+
+describe("blobToDataUrl", () => {
+  it("should convert a blob to a data URL", async () => {
+    const content = "test content";
+    const blob = new Blob([content], { type: "text/plain" });
+
+    const dataUrl = await blobToDataUrl(blob);
+
+    expect(dataUrl).toMatch(/^data:text\/plain;base64,/);
+  });
+
+  it("should preserve image type in data URL", async () => {
+    const blob = new Blob(["fake image data"], { type: "image/png" });
+
+    const dataUrl = await blobToDataUrl(blob);
+
+    expect(dataUrl).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("should handle empty blob", async () => {
+    const blob = new Blob([], { type: "image/png" });
+
+    const dataUrl = await blobToDataUrl(blob);
+
+    expect(dataUrl).toBe("data:image/png;base64,");
+  });
+
+  it("should reject on FileReader error", async () => {
+    // Create a mock blob that will cause FileReader to error
+    const originalFileReader = global.FileReader;
+
+    global.FileReader = class {
+      readAsDataURL() {
+        setTimeout(() => {
+          if (this.onerror) this.onerror(new Error("Read error"));
+        }, 0);
+      }
+    };
+
+    const blob = new Blob(["test"], { type: "text/plain" });
+
+    await expect(blobToDataUrl(blob)).rejects.toThrow("Failed to read blob as data URL");
+
+    global.FileReader = originalFileReader;
   });
 });
