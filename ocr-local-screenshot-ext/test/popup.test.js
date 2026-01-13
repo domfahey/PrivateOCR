@@ -662,7 +662,7 @@ describe("Popup Logic Integration", () => {
         });
       });
 
-      it("should handle missing region data gracefully", async () => {
+      it("should show feedback when region data is missing", async () => {
         vi.clearAllMocks();
 
         const originalLocation = window.location;
@@ -677,9 +677,104 @@ describe("Popup Logic Integration", () => {
         init(elements);
         await flushAll();
 
-        // Should not show error, just be ready
-        expect(elements.statusEl.textContent).not.toContain("Error");
+        // Should show helpful message
+        expect(elements.statusEl.textContent).toBe("Region data not found. Please try again.");
 
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: originalLocation,
+        });
+      });
+
+      it("should disable screenshot button when region data is missing", async () => {
+        vi.clearAllMocks();
+
+        const originalLocation = window.location;
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: { ...originalLocation, search: "?regionMode=true" },
+        });
+
+        // No pending data
+        chrome.storage.local.get.mockResolvedValueOnce({});
+
+        init(elements);
+        await flushAll();
+
+        // Screenshot button should be disabled (no valid source window)
+        expect(elements.screenshotBtn.disabled).toBe(true);
+
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: originalLocation,
+        });
+      });
+
+      it("should keep region button enabled when region data is missing for retry", async () => {
+        vi.clearAllMocks();
+
+        const originalLocation = window.location;
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: { ...originalLocation, search: "?regionMode=true" },
+        });
+
+        // No pending data
+        chrome.storage.local.get.mockResolvedValueOnce({});
+
+        init(elements);
+        await flushAll();
+
+        // Region button should NOT be disabled - user can close and retry
+        // Actually in region mode popup, regionBtn is disabled because can't inject into extension pages
+        // But screenshotBtn should be disabled since we don't have a source window
+        expect(elements.screenshotBtn.disabled).toBe(true);
+
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: originalLocation,
+        });
+      });
+    });
+
+    describe("Capture with Invalid Source Window", () => {
+      it("should show helpful error when source window is closed", async () => {
+        vi.clearAllMocks();
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        const originalLocation = window.location;
+        Object.defineProperty(window, "location", {
+          writable: true,
+          value: { ...originalLocation, search: "?regionMode=true" },
+        });
+
+        // Set up region mode with valid data - this will succeed initially
+        chrome.storage.local.get.mockResolvedValueOnce({
+          pendingRegionOcr: {
+            dataUrl: "data:image/png;base64,validData",
+            rect: { x: 0, y: 0, width: 100, height: 100 },
+            timestamp: Date.now(),
+            sourceWindowId: 999,
+          },
+        });
+
+        init(elements);
+        await flushAll();
+
+        // Clear the mock and set up failure for next captureVisibleTab call
+        chrome.tabs.captureVisibleTab.mockReset();
+        chrome.tabs.captureVisibleTab.mockRejectedValue(
+          new Error("No window with id: 999")
+        );
+
+        // Now simulate clicking "Capture Tab" after the source window was closed
+        elements.screenshotBtn.click();
+        await flushAll();
+
+        // Should show error about the window being unavailable
+        expect(elements.statusEl.textContent).toContain("Error");
+
+        consoleSpy.mockRestore();
         Object.defineProperty(window, "location", {
           writable: true,
           value: originalLocation,

@@ -58,7 +58,8 @@ Select a specific area of a webpage for more accurate OCR:
 Access additional options via the **gear icon** in the popup header:
 
 - Opens the full settings page in a new tab
-- Configure extension preferences (when available)
+- Shows the OCR engine details and privacy status
+- Language data is managed by adding `.traineddata` files to `vendor/tessdata/`
 
 ### Zoom Controls
 
@@ -76,6 +77,18 @@ The popup includes zoom controls for both the image preview and text output:
 ### Split View Toggle
 
 Click the **image icon** in the toolbar to show/hide the screenshot preview panel. The split view lets you compare the original image with the extracted text.
+
+## Permissions & Privacy
+
+PrivateOCR runs fully offline with no host permissions. All data stays in the browser and temporary capture data is cleaned up regularly.
+
+- **`activeTab`**: Capture the current tab only when you click the extension
+- **`scripting`**: Inject the region selection overlay
+- **`storage`**: Store temporary capture data and local preferences
+- **`unlimitedStorage`**: Prevent quota errors on large/high-DPI captures
+- **`clipboardWrite`**: Copy recognized text to the clipboard automatically
+- **`notifications`**: Show capture/cancellation feedback
+- **`alarms`**: Schedule periodic cleanup of stale region data
 
 ## Limitations
 

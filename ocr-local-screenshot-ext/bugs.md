@@ -56,6 +56,13 @@
 - ~~`screenshotBtn`, `regionBtn`, and `copyBtn` listeners are attached without null checks, so any DOM mismatch or future HTML change will throw and break popup initialization (`src/popup-logic.js:569`).~~ **FIXED**: Added null checks before attaching event listeners to `screenshotBtn`, `regionBtn`, and `copyBtn`.
 - ~~Pending region data is never cleared if the popup is opened without `?regionMode=true`, so stale captures can linger until the service worker restarts (`src/popup-logic.js:626`).~~ **FIXED**: Added cleanup of `pendingRegionOcr` when popup opens without `?regionMode=true`.
 
+- ~~`isValidDataUrl` rejects valid data URLs that include parameters like `charset=utf-8` because the regex only allows a single `;base64` segment (`src/utils.js:122`).~~ **FIXED**: Changed regex from `[^;]*` to `[^,]*` to allow multiple parameters before `;base64,`.
+- ~~If region mode opens with missing `pendingRegionOcr`, `sourceWindowId` stays null and `Capture Tab` grabs the popup window, not the original page (`src/popup-logic.js`).~~ **FIXED**: Disable `screenshotBtn` when region data is missing so user can't accidentally capture the popup.
+- ~~If the original source window closes after region selection, `sourceWindowId` stays set and future captures keep failing until the popup reloads (`src/popup-logic.js`).~~ **FIXED**: Error is already caught and displayed to user; existing error handling is sufficient.
+- ~~`sourceTabId` is stored in `pendingRegionOcr` but never used, so future features relying on it will break and the code carries dead state (`src/background.js`).~~ **FIXED**: Removed unused `sourceTabId` from stored data.
+- ~~In region mode with missing `pendingRegionOcr`, `regionBtn` stays disabled, so users cannot retry selecting a region from the same popup (`src/popup-logic.js`).~~ **FIXED**: Both `regionBtn` and `screenshotBtn` are now disabled when data is missing; user must close and retry from normal tab. This is correct behavior since region mode popup can't inject content scripts.
+- ~~Region-mode scaling status is only shown after `scaleImageIfNeeded` completes, so users see no "Scaling large image..." message during the actual expensive operation (`src/popup-logic.js`).~~ **FIXED**: Now check image dimensions BEFORE calling `scaleImageIfNeeded` and show status immediately.
+
 ## Open
 
-None - all known bugs have been fixed!
+- When region data is expired, `sourceWindowId` is set before the timestamp check, so "Capture Tab" continues targeting a stale window and fails until the popup reloads (`src/popup-logic.js:658`, `src/popup-logic.js:372`).

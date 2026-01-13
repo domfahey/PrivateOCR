@@ -70,6 +70,17 @@ Common issues and solutions for PrivateOCR.
 - The extension accounts for DPI automatically; if issues persist, try setting browser zoom to 100%
 - Close and reopen the extension if the display scaling changed during the session
 
+### "Region data not found"
+
+**Symptoms:** The popup reopens and shows a message that region data is missing or expired.
+
+**Cause:** The temporary capture data was cleared before the popup could process it.
+
+**Solutions:**
+
+- Try the region selection again and complete the selection promptly
+- If the popup was already open, close it and retry the region capture
+
 ## Extension Problems
 
 ### Extension Not Loading
@@ -104,7 +115,7 @@ Common issues and solutions for PrivateOCR.
 
 - Use region selection to capture smaller areas
 - The first OCR operation is slower (loading the engine); subsequent operations are faster
-- Large screenshots (>2MP) are automatically scaled down
+- Large screenshots (>5MP) are automatically scaled down
 
 ### "Error: Cannot access this tab"
 

@@ -121,8 +121,9 @@ export function countWords(text) {
  */
 export function isValidDataUrl(dataUrl) {
   if (!dataUrl || typeof dataUrl !== "string") return false;
-  // Allow optional MIME type: data:;base64, or data:image/png;base64,
-  return /^data:[^;]*;base64,/.test(dataUrl);
+  // Allow optional MIME type and additional parameters before ;base64,
+  // Examples: data:;base64, data:image/png;base64, data:text/plain;charset=utf-8;base64,
+  return /^data:[^,]*;base64,/.test(dataUrl);
 }
 
 /**

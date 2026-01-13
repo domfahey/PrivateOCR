@@ -538,10 +538,21 @@ export function init(elements) {
       }
 
       // Scale down if the cropped region is too large
-      const { dataUrl: processedUrl, scaled } = await scaleImageIfNeeded(croppedDataUrl);
-      if (scaled) {
+      // Check dimensions first to show status BEFORE the expensive operation
+      const croppedImg = new Image();
+      await new Promise((resolve, reject) => {
+        croppedImg.onload = resolve;
+        croppedImg.onerror = () => reject(new Error("Failed to load cropped image"));
+        croppedImg.src = croppedDataUrl;
+      });
+      const needsScaling =
+        croppedImg.width * croppedImg.height > MAX_PIXELS ||
+        croppedImg.width > MAX_DIMENSION ||
+        croppedImg.height > MAX_DIMENSION;
+      if (needsScaling) {
         updateStatus("Scaling large image...");
       }
+      const { dataUrl: processedUrl } = await scaleImageIfNeeded(croppedDataUrl);
       // Check cancellation after scaling
       if (isCancelled) {
         setProcessing(false);
@@ -671,8 +682,10 @@ export function init(elements) {
           updateStatus("Error processing region: " + (err.message || String(err)));
         }
       } else {
-        // Region data is missing - inform user
+        // Region data is missing - inform user and disable screenshot button
+        // (no valid source window to capture from)
         updateStatus("Region data not found. Please try again.");
+        if (screenshotBtn) screenshotBtn.disabled = true;
       }
     } else {
       // Normal popup open (not region mode) - clean up any stale region data

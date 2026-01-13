@@ -63,7 +63,7 @@ describe("Background Service Worker", () => {
       );
     });
 
-    it("should store source tab ID and window ID for region mode popup", async () => {
+    it("should store source window ID for region mode popup", async () => {
       const mockTab = { id: 42, windowId: 10 };
       const mockRect = { x: 0, y: 0, width: 100, height: 100 };
 
@@ -74,7 +74,6 @@ describe("Background Service Worker", () => {
       expect(chrome.storage.local.set).toHaveBeenCalledWith(
         expect.objectContaining({
           pendingRegionOcr: expect.objectContaining({
-            sourceTabId: 42,
             sourceWindowId: 10,
           }),
         })

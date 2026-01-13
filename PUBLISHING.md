@@ -6,7 +6,7 @@ This guide outlines the steps to publish the **PrivateOCR** extension to the Goo
 
 Before uploading, ensure your extension is production-ready.
 
-1.  **Update Version:** Increment the `version` number in `manifest.json` (e.g., from `0.2.0` to `1.0.0`) and update `CHANGELOG.md`.
+1.  **Update Version:** Increment the `version` number in `manifest.json`, `package.json`, and `src/settings.html` (e.g., from `0.2.0` to `1.0.0`) and update `CHANGELOG.md`.
 2.  **Test:** Thoroughly test the extension functionality (screenshot, region select, OCR).
 3.  **Clean Up:** Remove any debug code.
 4.  **Create a ZIP File:**
@@ -34,7 +34,7 @@ Before uploading, ensure your extension is production-ready.
 ## 4. Store Listing
 
 *   **Description:** "Runs entirely offline. No data leaves your device."
-*   **Permissions:** Justify `activeTab` (capturing screenshots), `scripting` (region overlay), and `storage` (passing image data).
+*   **Permissions:** Justify `activeTab` (capturing screenshots), `scripting` (region overlay), `storage` (temporary capture data and settings), `unlimitedStorage` (avoid quota issues on large captures), `clipboardWrite` (auto-copy OCR output), `notifications` (status/error feedback), and `alarms` (scheduled cleanup of stale capture data).
 *   **Privacy:** Declare that no user data is collected or transmitted.
 
 ## 5. Submit

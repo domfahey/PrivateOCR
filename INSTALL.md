@@ -47,7 +47,7 @@ For more detailed troubleshooting, see [TROUBLESHOOTING.md](ocr-local-screenshot
 
 ### Does this extension send my data anywhere?
 
-**No.** All OCR processing happens entirely in your browser using Tesseract.js (WebAssembly). No screenshots, text, or any other data are sent to external servers. The extension has no network permissions.
+**No.** All OCR processing happens entirely in your browser using Tesseract.js (WebAssembly). No screenshots, text, or any other data are sent to external servers. The extension has no network permissions and only stores temporary capture data locally (cleaned up regularly).
 
 ### What languages are supported?
 
@@ -61,7 +61,11 @@ English by default. The extension ships with the English (`eng`) Tesseract train
 
 - **`activeTab`**: Allows capturing a screenshot of the current tab when you click the extension
 - **`scripting`**: Required to inject the region selection overlay onto pages
+- **`storage`**: Stores temporary capture data and local preferences
+- **`unlimitedStorage`**: Prevents quota errors on large/high-DPI captures
+- **`notifications`**: Shows capture errors or region cancellation feedback
 - **`clipboardWrite`**: Enables automatic copying of recognized text to your clipboard
+- **`alarms`**: Schedules periodic cleanup of stale region selection data
 
 ### How accurate is the OCR?
 

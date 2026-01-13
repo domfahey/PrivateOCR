@@ -111,6 +111,18 @@ describe("isValidDataUrl", () => {
   it("should return false for malformed data URL", () => {
     expect(isValidDataUrl("data:image/png,notbase64")).toBe(false);
   });
+
+  it("should return true for data URL with charset parameter", () => {
+    expect(isValidDataUrl("data:text/plain;charset=utf-8;base64,SGVsbG8=")).toBe(true);
+  });
+
+  it("should return true for data URL with multiple parameters", () => {
+    expect(isValidDataUrl("data:text/html;charset=utf-8;foo=bar;base64,SGVsbG8=")).toBe(true);
+  });
+
+  it("should return true for data URL with no MIME type", () => {
+    expect(isValidDataUrl("data:;base64,SGVsbG8=")).toBe(true);
+  });
 });
 
 describe("countWords", () => {

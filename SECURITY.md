@@ -1,10 +1,10 @@
-# Security Policy for Local OCR Screenshot Extension
+# Security Policy for PrivateOCR
 
-This document outlines the security and privacy policies for the Local OCR Screenshot Chrome Extension. Our core principle is to ensure that **no user data, especially sensitive image or text data, ever leaves the user's browser.**
+This document outlines the security and privacy policies for the PrivateOCR Chrome Extension. Our core principle is to ensure that **no user data, especially sensitive image or text data, ever leaves the user's browser.**
 
 ## 1. Privacy by Design: Local Processing Only
 
-The Local OCR Screenshot extension is designed with user privacy as its highest priority.
+The PrivateOCR extension is designed with user privacy as its highest priority.
 
 -   **All OCR Processing is Local**: The core OCR functionality is performed entirely within your browser using the bundled [Tesseract.js](https://tesseract.projectnaptha.com/) library. No screenshots, images, or extracted text are ever sent to remote servers for processing.
 -   **No Network Requests for Data**: Beyond fetching the extension files themselves from the Chrome Web Store (or local installation), the extension makes no outbound network requests that transmit user-generated content or personal data.
@@ -18,7 +18,7 @@ The Local OCR Screenshot extension is designed with user privacy as its highest 
 
 -   **Ephemeral Data**: Screenshots and recognized text are handled ephemerally. They reside in the browser's memory only for the duration of the OCR process or until cleared.
 -   **No Persistent Storage of Content**: The extension does not persistently store user screenshots or recognized text on your local disk or in browser storage (e.g., `localStorage`, `IndexedDB`).
--   **Temporary Storage for Region Selection**: For region selection (where the popup closes and re-opens), the captured screenshot and region coordinates are temporarily stored in `chrome.storage.local`. This data is **immediately removed** once the popup re-opens and processes the request, and it expires after 60 seconds if not processed. This is purely for inter-process communication within the browser and is not persisted.
+-   **Temporary Storage for Region Selection**: For region selection (where the popup closes and re-opens), the captured screenshot and region coordinates are stored in `chrome.storage.local` with a timestamp. This data is removed as soon as the popup re-opens and processes the request, and stale entries older than 60 seconds are cleaned up on service worker startup and by a scheduled alarm (runs every 5 minutes). This is purely for inter-process communication within the browser and is not persisted long-term.
 
 ## 4. Chrome Extension Permissions
 
@@ -28,7 +28,11 @@ The extension requests the minimum necessary permissions to function, and these 
     -   Capture a screenshot of the visible area of the active tab (`chrome.tabs.captureVisibleTab`).
     -   Query information about the active tab (`chrome.tabs.query`) to determine if content scripts can be injected.
 -   **`scripting`**: Required to inject our `content.js` script into the active page when the user selects "Select Region". This script creates the selection overlay and captures user input.
--   **`storage`**: Used exclusively for temporary, short-lived storage of screenshot data and region coordinates during the region selection workflow. This data is removed immediately after use.
+-   **`storage`**: Used exclusively for temporary, short-lived storage of screenshot data and region coordinates during the region selection workflow. This data is removed after use and periodically cleaned up if the popup does not reopen.
+-   **`unlimitedStorage`**: Prevents quota errors on large/high-DPI captures. It does not grant network access or change where data lives.
+-   **`clipboardWrite`**: Enables automatic copying of recognized text to the clipboard. It does not allow reading clipboard contents.
+-   **`notifications`**: Shows capture errors and region cancellation feedback.
+-   **`alarms`**: Schedules periodic cleanup of stale region selection data.
 
 ## 5. Content Security Policy (CSP)
 

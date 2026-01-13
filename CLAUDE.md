@@ -34,20 +34,20 @@ Chrome Manifest V3 extension for local OCR using Tesseract.js. No network reques
 **Full-page OCR:**
 
 ```
-popup.js → captureVisibleTab → scaleImageIfNeeded → Tesseract worker → clipboard
+popup-logic.js → captureVisibleTab → scaleImageIfNeeded → Tesseract worker → clipboard
 ```
 
 **Region selection:**
 
 ```
-popup.js injects content.js → user draws rect → content.js → background.js
+popup-logic.js injects content.js → user draws rect → content.js → background.js
 → captureVisibleTab → chrome.storage.local → opens popup?regionMode=true
-→ popup.js reads storage, crops, runs OCR
+→ popup-logic.js reads storage, crops, runs OCR
 ```
 
 ## Code Notes
 
-**popup.js is a browser script** (not ES module), cannot be imported in tests. Testable logic goes in `src/utils.js`.
+**popup.js is a small ES module** that wires DOM elements into `popup-logic.js`. Keep testable logic in `src/popup-logic.js` and `src/utils.js`.
 
 **Shared utilities**: `popup-logic.js` imports utility functions (`dataUrlToBlob`, `scaleImageIfNeeded`, `copyToClipboard`) from `utils.js`. The constants `MAX_PIXELS` (5MP) and `MAX_DIMENSION` (3000px) are defined in `utils.js` and used internally by `scaleImageIfNeeded`.
 

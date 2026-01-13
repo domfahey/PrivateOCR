@@ -125,13 +125,12 @@ async function handleRegionSelection(sourceTab, selectedRegion) {
 
     // Store the capture data for the popup to retrieve
     // We use storage instead of URL parameters because data URLs can be very large
-    // Include source tab info so the popup can capture from the original tab, not itself
+    // Include source window ID so the popup can capture from the original window, not itself
     await chrome.storage.local.set({
       pendingRegionOcr: {
         dataUrl: screenshotDataUrl,
         rect: selectedRegion,
         timestamp: Date.now(),
-        sourceTabId: sourceTab.id,
         sourceWindowId: sourceTab.windowId,
       },
     });
