@@ -1,4 +1,10 @@
-# PrivateOCR
+<div align="center">
+  <img src="logo/privateocr-logo.png" alt="PrivateOCR Logo" width="180">
+  <h1>PrivateOCR</h1>
+  <p><strong>Local OCR for Chrome — Your text stays on your device</strong></p>
+</div>
+
+---
 
 This repository contains the source code for the **PrivateOCR** Chrome extension.
 

@@ -1,4 +1,14 @@
-# PrivateOCR
+<div align="center">
+  <img src="../logo/privateocr-logo.png" alt="PrivateOCR Logo" width="128" height="128">
+  <h1>PrivateOCR</h1>
+  <p><strong>Local OCR for Chrome — Your text stays on your device</strong></p>
+
+  [![Version](https://img.shields.io/badge/version-0.5.3-blue.svg)](CHANGELOG.md)
+  [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+  [![Tests](https://img.shields.io/badge/tests-193%20passing-brightgreen.svg)]()
+</div>
+
+---
 
 A privacy-focused Chrome extension that extracts text from screenshots using local OCR. All processing happens directly in your browser using [Tesseract.js](https://tesseract.projectnaptha.com/) ([GitHub](https://github.com/naptha/tesseract.js)) (WASM).
 
