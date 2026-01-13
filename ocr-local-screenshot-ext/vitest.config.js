@@ -13,12 +13,10 @@ export default defineConfig({
       exclude: [
         "node_modules/**",
         "test/**",
+        "vendor/**",
         "*.config.js",
         "dist/**",
         "coverage/**",
-        "lib/tesseract.min.js",
-        "lib/tesseract-core-simd.wasm.js",
-        "lib/worker.min.js"
       ],
     },
   },
